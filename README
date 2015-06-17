@@ -1,0 +1,2 @@
+A simple toy script displaying the contents of an ELF file.
+Absolutely not intended to compare to libelf, objdump & co.
