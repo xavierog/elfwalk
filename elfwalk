@@ -82,8 +82,17 @@ sub readValue {
 	}
 
 	my $data;
-	read($fd, $data, $size);
-	# TODO check the read
+	my $reading = read($fd, $data, $size);
+	if (!defined($reading)) {
+		exitWithMessage(6, "error when attempting to read %d bytes: %s.", $size, $!);
+	}
+	elsif ($reading == 0) {
+		exitWithMessage(5, "reached end of file.");
+	}
+	elsif ($reading != $size) {
+		exitWithMessage(4, "was asked to read %d bytes but could only read %d.", $size, $reading);
+	}
+
 	my $unpack_arg;
 	if ($size == 2 || $size == 4) {
 		# n stands for "network" (i.e. big-endian)
