@@ -120,6 +120,7 @@ sub walkELF {
 	walkELFHeaderMagicNumber($elf_fh, $elf_data);
 	walkELFHeaderIdent($elf_fh, $elf_data);
 	walkELFHeaderFields($elf_fh, $elf_data);
+	walkELFSections($elf_fh, $elf_data);
 }
 
 sub walkELFHeaderMagicNumber {
@@ -284,6 +285,138 @@ sub walkELFHeaderFields {
 
 	my $e_shstrndx = $elf_data->{'e_shstrndx'} = readValue($elf_fh, 2, UNSIGNED);
 	printf("  e_shstrndx is %d -- this is, within the section header table, the index of the section containing the section names.\n", $e_shstrndx);
+}
+
+sub walkELFSections {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+
+	print "Parsing sections\n";
+	$elf_data->{'sections'} = {};
+
+	printf("  Parsing section #%d first as it holds section names:\n", $elf_data->{'e_shstrndx'});
+	walkELFSection($elf_fh, $elf_data, $elf_data->{'e_shstrndx'});
+
+	printf("  Not parsing section #0 as it is reserved.\n");
+	printf("    It must contain only zeroes.\n");
+
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		next if ($i == $elf_data->{'e_shstrndx'});
+		printf("  Parsing section #%d:\n", $i);
+		walkELFSection($elf_fh, $elf_data, $i);
+	}
+}
+
+sub walkELFSection {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+
+	my $offset = sectionOffset($elf_data, $section_index);
+	printf("    Seeking to offset shoff + (%d x shentsize) = 0x%016X.\n", $section_index, $offset);
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	my $section = {};
+	my $sh_name = $section->{'sh_name'} = readValue($elf_fh, 4, UNSIGNED);
+	printf("    sh_name is 0x%08X -- this offset is used to locate the section name.\n", $sh_name);
+
+	my $sh_type = $section->{'sh_type'} = readValue($elf_fh, 4, UNSIGNED);
+	printf("    sh_type is 0x%08X -- this is the section type\n", $sh_name);
+	# TODO -- see table 8
+
+	my $sh_flags = $section->{'sh_flags'} = readValue($elf_fh, 8, UNSIGNED);
+	printf("    sh_flags is 0x%016X -- it identifies the attributes of the section.\n", $sh_flags);
+	# TODO -- see table 9
+
+	my $sh_addr = $section->{'sh_addr'} = readValue($elf_fh, 8, UNSIGNED);
+	printf("    sh_addr is 0x%016X -- virtual address of the section in memory.\n", $sh_addr);
+	# TODO check if zero
+
+	my $sh_offset = $section->{'sh_offset'} = readValue($elf_fh, 8, UNSIGNED);
+	printf("    sh_offset is 0x%016X -- offset, in bytes, of the section in the file.\n", $sh_offset);
+
+	my $sh_size = $section->{'sh_size'} = readValue($elf_fh, 8, UNSIGNED);
+	printf("    sh_size is %d -- size, in bytes of the section.\n", $sh_size);
+	# TODO check if SHT_NOBITS.
+
+	my $sh_link = $section->{'sh_link'} = readValue($elf_fh, 4, UNSIGNED);
+	printf("    sh_link is %d -- index of an associated section.\n", $sh_link);
+	# TODO -- see table 10
+
+	my $sh_info = $section->{'sh_info'} = readValue($elf_fh, 4, UNSIGNED);
+	printf("    sh_info is 0x%08X -- extra information about the section.\n", $sh_info);
+	# TODO -- see table 11
+
+	my $sh_addralign = $section->{'sh_addralign'} = readValue($elf_fh, 8, UNSIGNED);
+	printf("    sh_addralign is 0x%016X -- required alignment of the section.\n", $sh_addralign);
+	# TODO -- this field must be a power of two.
+
+	my $sh_entsize = $section->{'sh_entsize'} = readValue($elf_fh, 8, UNSIGNED);
+	printf("    sh_entsize is 0x%016X -- size, in bytes, of each entry.\n", $sh_entsize);
+	# TODO check if zero
+
+	# Push the resulting section into $elf_data so sectionName() can leverage it.
+	$elf_data->{'sections'}->{$section_index} = $section;
+
+	my $sh_strname = $section->{'sh_strname'} = sectionName($elf_fh, $elf_data, $section_index);
+}
+
+sub sectionOffset {
+	my $elf_data = shift;
+	my $section_index = shift;
+
+	return undef if ($section_index < 0);
+	return undef if ($section_index >= $elf_data->{'e_shnum'});
+	return $elf_data->{'e_shoff'} + ($section_index * $elf_data->{'e_shentsize'});
+}
+
+sub sectionNameOffset {
+	my $elf_data = shift;
+	my $section_index = shift;
+
+	# We need the index of the section holding section names.
+	return undef if (!exists($elf_data->{'e_shstrndx'}));
+	my $shstrndx = $elf_data->{'e_shstrndx'};
+
+	# We need details about that section.
+	return undef if (!exists($elf_data->{'sections'}));
+	return undef if (!exists($elf_data->{'sections'}->{$shstrndx}));
+
+	# Especially, we need its offset in the ELF file.
+	return undef if (!exists($elf_data->{'sections'}->{$shstrndx}->{'sh_offset'}));
+	my $shstroffset = $elf_data->{'sections'}->{$shstrndx}->{'sh_offset'};
+
+	# We add it the sh_name offset of the given section.
+	return undef if (!exists($elf_data->{'sections'}->{$section_index}));
+	return undef if (!exists($elf_data->{'sections'}->{$section_index}->{'sh_name'}));
+	return $shstroffset + $elf_data->{'sections'}->{$section_index}->{'sh_name'};
+}
+
+sub sectionName {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+
+	# Compute the offset to the section name.
+	my $name_offset = sectionNameOffset($elf_data, $section_index);
+	if (!defined($name_offset)) {
+		print "    Error: unable to compute name offset.\n";
+		return undef;
+	}
+
+	# Seek to that offset.
+	seek($elf_fh, $name_offset, Fcntl::SEEK_SET);
+
+	# Read data into a string until we stumble upon EOF or 0x00.
+	my $name;
+	my $read_bytes;
+	while (1) {
+		$read_bytes = read($elf_fh, my $char, 1);
+		last if ($read_bytes != 1 || $char eq "\x0");
+		$name .= $char;
+	}
+	printf("    Fetched name at offset 0x%016X: %s\n", $name_offset, $name);
+	return $name;
 }
 
 exit(0);
