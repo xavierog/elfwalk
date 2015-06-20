@@ -28,6 +28,36 @@ use constant {
 	SIGNED => 1,
 	LITTLE_ENDIAN => 0,
 	BIG_ENDIAN => 1,
+	ELFCLASS32 => 1,
+	ELFCLASS64 => 2,
+};
+
+# ELF data types
+# Notes:
+#   - alignment was not included as it always equals size.
+#   - see http://perldoc.perl.org/constant.html#CAVEATS if you wonder about the
+#     parenthesis after ELFCLASS constants.
+our $elf_data_types = {
+	ELFCLASS32() => {
+		# Figure 1-2: 32-Bit Data Types
+		'Addr'   => { 'size' => 4, 'formatter' => '0x%08X',  'signed' => UNSIGNED },
+		'Half'   => { 'size' => 2, 'formatter' => '0x%04X',  'signed' => UNSIGNED },
+		'Off'    => { 'size' => 4, 'formatter' => '0x%08X',  'signed' => UNSIGNED },
+		'Sword'  => { 'size' => 4, 'formatter' => '0x%08X',  'signed' =>   SIGNED },
+		'Word'   => { 'size' => 4, 'formatter' => '0x%08X',  'signed' => UNSIGNED },
+		'char'   => { 'size' => 1, 'formatter' => '%d',      'signed' => UNSIGNED },
+	},
+	ELFCLASS64() => {
+		# Table 1. ELF-64 Data Types
+		'Addr'   => { 'size' => 8, 'formatter' => '0x%016X', 'signed' => UNSIGNED },
+		'Off'    => { 'size' => 8, 'formatter' => '0x%016X', 'signed' => UNSIGNED },
+		'Half'   => { 'size' => 2, 'formatter' => '0x%04X',  'signed' => UNSIGNED },
+		'Word'   => { 'size' => 4, 'formatter' => '0x%08X',  'signed' => UNSIGNED },
+		'Sword'  => { 'size' => 4, 'formatter' => '0x%08X',  'signed' =>   SIGNED },
+		'Xword'  => { 'size' => 8, 'formatter' => '0x%016X', 'signed' => UNSIGNED },
+		'Sxword' => { 'size' => 8, 'formatter' => '0x%016X', 'signed' =>   SIGNED },
+		'char'   => { 'size' => 1, 'formatter' => '%d',      'signed' => UNSIGNED },
+	},
 };
 
 # Simple arguments parsing: require one and exactly one argument.
