@@ -92,10 +92,57 @@ sub usage {
 	exit(125);
 }
 
+my $default_class     = ELFCLASS64;
 my $default_endianess = LITTLE_ENDIAN;
 
 sub setDefaultEndianess {
 	$default_endianess = shift;
+}
+
+sub setDefaultClass {
+	$default_class = shift;
+}
+
+sub typeInfo {
+	my $type = shift;
+	my $class = shift;
+
+	$class = $default_class if (!defined($class));
+
+	if (!exists($elf_data_types->{$class})) {
+		exitWithMessage(150, "tried to work with unknown ELF class (${class})");
+	}
+
+	if (!exists($elf_data_types->{$class}->{$type})) {
+		exitWithMessage(148, "tried to work with unknown type (${type})");
+	}
+
+	return $elf_data_types->{$class}->{$type};
+}
+
+# Expected arguments:
+#   - file descriptor
+#   - type, e.g. 'Half', 'Word', 'Addr', etc.
+#   - ELF Class, e.g. ELFCLASS32 or ELFCLASS64
+#   - endianess: either LITTLE_ENDIAN or BIG_ENDIAN
+sub readELFValue {
+	my $fd = shift;
+	my $type = shift;
+	my $class = shift;
+	my $endianess = shift;
+
+	# Default values.
+	$class = $default_class if (!defined($class));
+	$endianess = $default_endianess if (!defined($endianess));
+
+	my $type_info = typeInfo($type, $class);
+
+	return readValue(
+		$fd,
+		$type_info->{'size'},
+		$type_info->{'signed'},
+		$endianess
+	);
 }
 
 # Expected arguments:
@@ -153,6 +200,15 @@ sub readValue {
 	#   Q> An unsigned quad (64-bit) value (big-endian).
 	#   q< A signed quad (64-bit) value (little-endian).
 	#   Q< An unsigned quad (64-bit) value (little-endian).
+}
+
+sub formatValue {
+	my $value = shift;
+	my $type = shift;
+	my $class = shift;
+
+	my $type_info = typeInfo($type, $class);
+	return sprintf($type_info->{'formatter'}, $value);
 }
 
 sub walkELF {
@@ -213,9 +269,11 @@ sub walkELFHeaderIdent {
 	read($elf_fh, $data, 1);
 	if ($data eq "\x1") {
 		print "    EI_CLASS is 1, i.e. ELFCLASS32: 32-bit objects\n";
+		setDefaultClass(ELFCLASS32);
 	}
 	elsif ($data eq "\x2") {
 		print "    EI_CLASS is 2, i.e. ELFCLASS64: 64-bit objects\n";
+		setDefaultClass(ELFCLASS64);
 	}
 	else {
 		exitWithMessage(100, "EI_CLASS is neither 1 nor 2 as expected, aborting.");
