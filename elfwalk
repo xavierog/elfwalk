@@ -20,6 +20,7 @@
 
 use strict;
 use Fcntl;
+use Term::ANSIColor qw(coloralias colored);
 use Data::Dumper;
 
 # Constants
@@ -68,6 +69,16 @@ our $elf_filepath = $ARGV[0];
 unless (-f $elf_filepath && -r $elf_filepath) {
 	exitWithMessage(120, sprintf('%s either does not exist or is not readable.', $elf_filepath));
 }
+
+coloralias('main_action', 'bright_yellow');
+coloralias('error', 'red');
+coloralias('index', 'bright_white');
+coloralias('offset', 'yellow');
+coloralias('value_name', 'bright_white');
+coloralias('value', 'cyan');
+coloralias('name', 'green');
+coloralias('flag_name', 'green');
+coloralias('flag_value', 'cyan');
 
 # Open the file
 our $elf_fh;
