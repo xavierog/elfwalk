@@ -62,6 +62,37 @@ our $elf_data_types = {
 };
 
 our $elf_structures = {
+	# Figure 2. ELF-64 Header
+	'file_header' => {
+		'ordered_entries' => [
+			'e_type',
+			'e_machine',
+			'e_version',
+			'e_entry',
+			'e_phoff',
+			'e_shoff',
+			'e_flags',
+			'e_ehsize',
+			'e_phentsize',
+			'e_phnum',
+			'e_shentsize',
+			'e_shnum',
+			'e_shstrndx',
+		],
+		'e_type' => 'Half',
+		'e_machine' => 'Half',
+		'e_version' => 'Word',
+		'e_entry' => 'Addr',
+		'e_phoff' => 'Off',
+		'e_shoff' => 'Off',
+		'e_flags' => 'Word',
+		'e_ehsize' => 'Half',
+		'e_phentsize' => 'Half',
+		'e_phnum' => 'Half',
+		'e_shentsize' => 'Half',
+		'e_shnum' => 'Half',
+		'e_shstrndx' => 'Half',
+	},
 	# Figure 3. ELF-64 Section Header
 	'section_header' => {
 		'ordered_entries' => [
@@ -90,6 +121,78 @@ our $elf_structures = {
 };
 
 our $elf = {
+	# Table 6. Object File Types, e_type
+	'e_type' => {
+		'unexplained_value' => 'fatal',
+		'name' => {
+			0 => 'ET_NONE',
+			1 => 'ET_REL',
+			2 => 'ET_EXEC',
+			3 => 'ET_DYN',
+			4 => 'ET_CORE',
+		},
+		'meaning' => {
+			 0 => 'no file type',
+			 1 => 'relocatable object file',
+			 2 => 'executable file',
+			 3 => 'shared object file',
+			 4 => 'core file',
+		},
+		'ranges' => {
+			'OS' => {
+				'meaning' => 'environment-specific use',
+				'low_value' => 0xFE00,
+				'low_name' => 'ET_LOOS',
+				'high_value' => 0xFEFF,
+				'high_name' => 'ET_HIOS',
+			},
+			'PROC' => {
+				'meaning' => 'processor-specific use',
+				'low_value' => 0xFF00,
+				'low_name' => 'ET_LOPROC',
+				'high_value' => 0xFFFF,
+				'high_name' => 'ET_HIPROC',
+			},
+		},
+	},
+	'e_machine' => {
+		'single_meaning' => 'identifies the target architecture',
+	},
+	'e_version' => {
+		'name' => { 1 => 'EV_CURRENT' },
+		'meaning' => { 1 => 'this is the expected version of the object file format' },
+		'unexplained_value' => 'i.e. not EV_CURRENT, ignoring',
+	},
+	'e_entry' => {
+		'single_meaning' => 'contains the virtual address of the program entry point',
+	},
+	'e_phoff' => {
+		'single_meaning' => 'contains the file offset, in bytes, of the program header table',
+	},
+	'e_shoff' => {
+		'single_meaning' => 'contains the file offset, in bytes, of the section header table',
+	},
+	'e_flags' => {
+		'single_meaning' => 'contains processor-specific flags',
+	},
+	'e_ehsize' => {
+		'single_meaning' => 'contains the size, in bytes, of the ELF header',
+	},
+	'e_phentsize' => {
+		'single_meaning' => 'contains the size, in bytes, of a program header table entry',
+	},
+	'e_phnum' => {
+		'single_meaning' => 'contains the number of entries in the program header table',
+	},
+	'e_shentsize' => {
+		'single_meaning' => 'contains the size, in bytes, of a section header table entry',
+	},
+	'e_shnum' => {
+		'single_meaning' => 'contains the number of entries in the section header table',
+	},
+	'e_shstrndx' => {
+		'single_meaning' => 'this is, within the section header table, the index of the section containing the section names',
+	},
 	'sh_name' => {
 		'single_meaning' => 'this offset is used to locate the section name',
 	},
