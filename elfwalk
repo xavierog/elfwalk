@@ -138,7 +138,7 @@ our $elf = {
 				'high_value' => 0x7FFFFFFF,
 				'high_name' => 'SHT_HIPROC',
 			},
-		}
+		},
 	},
 	# Table 9. Section Attributes, sh_flags
 	'sh_flags' => {
