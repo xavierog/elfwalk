@@ -511,13 +511,13 @@ sub readValue {
 	my $data;
 	my $reading = read($fd, $data, $size);
 	if (!defined($reading)) {
-		exitWithMessage(6, "error when attempting to read %d bytes: %s.", $size, $!);
+		exitWithMessage(6, sprintf("error when attempting to read %d bytes: %s.", $size, $!));
 	}
 	elsif ($reading == 0) {
 		exitWithMessage(5, "reached end of file.");
 	}
 	elsif ($reading != $size) {
-		exitWithMessage(4, "was asked to read %d bytes but could only read %d.", $size, $reading);
+		exitWithMessage(4, sprintf("was asked to read %d bytes but could only read %d.", $size, $reading));
 	}
 
 	my $unpack_arg;
