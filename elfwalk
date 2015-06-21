@@ -437,7 +437,11 @@ sub analyseValue {
 		}
 	}
 
-	# Still there? Seriously? Well...
+	# Still there? Seriously? Well, is this fatal?
+	if (exists($table->{'unexplained_value'})) {
+		$return->{'unexplained_value'} = $table->{'unexplained_value'};
+		return $return;
+	}
 	return undef;
 }
 
@@ -491,6 +495,18 @@ sub analyseAndExplainValue {
 			formatValue($analysis->{'high_value'}, $type, $class),
 			$analysis->{'meaning'}
 		);
+	}
+	elsif (exists($analysis->{'unexplained_value'})) {
+		if ($analysis->{'unexplained_value'} eq 'fatal') {
+			$str .= ", which is illegal, aborting.";
+			exitWithMessage(100, $str);
+		}
+		elsif ($analysis->{'unexplained_value'} eq 'warning') {
+			$str .= ", which is probably abnormal, ignoring.";
+		}
+		else {
+			$str .= ", " . $analysis->{'unexplained_value'} . ".";
+		}
 	}
 	return $str;
 }
