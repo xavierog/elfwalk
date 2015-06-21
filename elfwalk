@@ -387,6 +387,60 @@ sub walkELF {
 	walkELFSections($elf_fh, $elf_data);
 }
 
+sub analyseValue {
+	my $table_name = shift;
+	my $value = shift;
+
+	return undef if (!exists($elf->{$table_name}));
+	my $table= $elf->{$table_name};
+
+	my $return = {};
+
+	# Can we get a single, systematic meaning?
+	if (exists($table->{'single_meaning'})) {
+		$return->{'single_meaning'} = $table->{'single_meaning'};
+	}
+
+	# Are we dealing with a set of flags, by chance?
+	if (exists($table->{is_flag}) && $table->{is_flag}) {
+		$return->{'is_flag'} = 1;
+		$return->{'name'} = {};
+		$return->{'meaning'} = {};
+		for my $mask (keys(%{$table->{'name'}})) {
+			if (($value & $mask) == $mask) {
+				$return->{'name'}->{$mask}    = $table->{'name'}->{$mask};
+				$return->{'meaning'}->{$mask} = $table->{'meaning'}->{$mask};
+			}
+		}
+		return $return;
+	}
+
+	# Can we get a value-specific name and/or a meaning?
+	for my $info ('name', 'meaning') {
+		if (exists($table->{$info})) {
+			if (exists($table->{$info}->{$value})) {
+				$return->{$info} = $table->{$info}->{$value};
+			}
+		}
+	}
+	return $return if (keys(%$return));
+
+	# It seems we got neither a name nor a meaning.
+	# => Try ranges now.
+	if (exists($table->{'ranges'})) {
+		for my $range (keys(%{$table->{'ranges'}})) {
+			my $lo = $table->{'ranges'}->{$range}->{'low_value'};
+			my $hi = $table->{'ranges'}->{$range}->{'high_value'};
+			if ($value >= $lo && $value <= $hi) {
+				return $table->{'ranges'}->{$range};
+			}
+		}
+	}
+
+	# Still there? Seriously? Well...
+	return undef;
+}
+
 sub walkELFHeaderMagicNumber {
 	my $elf_fh = shift;
 	my $elf_data = shift;
