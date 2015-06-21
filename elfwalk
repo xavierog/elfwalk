@@ -61,6 +61,34 @@ our $elf_data_types = {
 	},
 };
 
+our $elf_structures = {
+	# Figure 3. ELF-64 Section Header
+	'section_header' => {
+		'ordered_entries' => [
+			'sh_name',
+			'sh_type',
+			'sh_flags',
+			'sh_addr',
+			'sh_offset',
+			'sh_size',
+			'sh_link',
+			'sh_info',
+			'sh_addralign',
+			'sh_entsize',
+		],
+		'sh_name' => 'Word',
+		'sh_type' => 'Word',
+		'sh_flags' => 'Xword',
+		'sh_addr' => 'Addr',
+		'sh_offset' => 'Off',
+		'sh_size' => 'Xword',
+		'sh_link' => 'Word',
+		'sh_info' => 'Word',
+		'sh_addralign' => 'Xword',
+		'sh_entsize' => 'Xword',
+	},
+};
+
 # Simple arguments parsing: require one and exactly one argument.
 usage() if @ARGV != 1;
 
