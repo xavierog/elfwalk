@@ -234,6 +234,12 @@ sub formatValue {
 	return sprintf($type_info->{'formatter'}, $value);
 }
 
+sub formatOffset {
+	my $offset = shift;
+	$offset = formatValue($offset, 'Off');
+	return colored($offset, 'offset');
+}
+
 sub walkELF {
 	my $elf_fh = shift;
 
