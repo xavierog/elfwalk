@@ -718,66 +718,25 @@ sub walkELFHeaderFields {
 	my $elf_data = shift;
 	my $data;
 
-	my $e_type = $elf_data->{'e_type'} = readValue($elf_fh, 2, UNSIGNED);
-	if ($e_type >= 0 && $e_type < 5) {
-		my @types = ('ET_NONE', 'ET_REL', 'ET_EXEC', 'ET_DYN', 'ET_CORE');
-		my @explanations= ('no file type', 'relocatable object file', 'executable file', 'shared object file', 'core file');
-		printf("  e_type is %d, i.e. %s, i.e. %s.\n", $e_type, $types[$e_type], $explanations[$e_type]);
+	my $ind = 1;
+	for my $entry (@{$elf_structures->{'file_header'}->{'ordered_entries'}}) {
+		my $type = $elf_structures->{'file_header'}->{$entry};
+		my $value = $elf_data->{$entry} = readELFValue($elf_fh, $type);
+		say($ind, analyseAndExplainValue($elf_data->{$entry}, $entry, $type));
+
+		if ($entry eq 'e_entry') {
+			say($ind + 1, 'Here, zero means there is no entry point.') if (!$value);
+		}
+		elsif ($entry eq 'e_phnum') {
+			my $e_phentsize = $elf_data->{'e_phentsize'};
+			say($ind + 1, sprintf('conclusion: the program header table is %d x %d = %d bytes', $e_phentsize, $value, $e_phentsize * $value));
+		}
+		elsif ($entry eq 'e_shnum') {
+			my $e_shentsize = $elf_data->{'e_shentsize'};
+			say($ind + 1, sprintf('conclusion: sections are indexed from 0 (this index is reserved though) to %d.', $value - 1));
+			say($ind + 1, sprintf('conclusion: the section header table is %d x %d = %d bytes', $e_shentsize, $value, $e_shentsize * $value));
+		}
 	}
-	elsif ($e_type >= 0xFE00 && $e_type <= 0xFEFF) {
-		printf("  e_type is 0x%04X, between ET_LOOS (0xFE00) and ET_HIOS (0xFEFF), which represents an environment-specific use.\n", $e_type);
-	}
-	elsif ($e_type >= 0xFF00 && $e_type <= 0xFFFF) {
-		printf("  e_type is 0x%04X, between ET_LOPROC (0xFF00) and ET_HIPROC (0xFFFF), which represents a processor-specific use.\n", $e_type);
-	}
-	else {
-		exitWithMessage(100, sprintf("e_type is 0x%04X, which is unexpected, aborting.\n", $e_type));
-	}
-
-	my $e_machine = $elf_data->{'e_machine'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_machine is 0x%04X -- this is the target architecture.\n", $e_machine);
-
-	my $e_version = $elf_data->{'e_version'} = readValue($elf_fh, 4, UNSIGNED);
-	if ($e_version == 1) {
-		print "  e_version is 1, i.e. EV_CURRENT.\n";
-	}
-	else {
-		printf("  e_version is 0x%04X, i.e. not EV_CURRENT, ignoring.\n", $e_version);
-	}
-
-	my $e_entry = $elf_data->{'e_entry'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("  e_entry is 0x%016X -- this is the virtual address of the program entry point.\n", $e_entry);
-	print "    Here, zero means there is no entry point." if (!$e_entry);
-
-	my $e_phoff = $elf_data->{'e_phoff'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("  e_phoff is 0x%016X -- this is the file offset, in bytes, of the program header table.\n", $e_phoff);
-
-	my $e_shoff = $elf_data->{'e_shoff'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("  e_shoff is 0x%016X -- this is the file offset, in bytes, of the section header table.\n", $e_shoff);
-
-	my $e_flags = $elf_data->{'e_flags'} = readValue($elf_fh, 4, UNSIGNED);
-	printf("  e_flags is 0x%08X.\n", $e_flags);
-
-	my $e_ehsize = $elf_data->{'e_ehsize'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_ehsize is %d -- this is the size, in bytes, of the ELF header.\n", $e_ehsize);
-
-	my $e_phentsize = $elf_data->{'e_phentsize'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_phentsize is %d -- this is the size, in bytes, of a program header table entry.\n", $e_phentsize);
-
-	my $e_phnum = $elf_data->{'e_phnum'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_phnum is %d -- this is the number of entries in the program header table.\n", $e_phnum);
-	printf("    conclusion: the program header table is %d x %d = %d bytes\n", $e_phentsize, $e_phnum, $e_phentsize * $e_phnum);
-
-	my $e_shentsize = $elf_data->{'e_shentsize'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_shentsize is %d -- this is the size, in bytes, of a section header table entry.\n", $e_shentsize);
-
-	my $e_shnum = $elf_data->{'e_shnum'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_shnum is %d -- this is the number of entries in the section header table.\n", $e_shnum);
-	printf("    conclusion: sections are indexed from 0 (this index is reserved though) to %d.\n", $e_shnum - 1);
-	printf("    conclusion: the section header table is %d x %d = %d bytes\n", $e_shentsize, $e_shnum, $e_shentsize * $e_shnum);
-
-	my $e_shstrndx = $elf_data->{'e_shstrndx'} = readValue($elf_fh, 2, UNSIGNED);
-	printf("  e_shstrndx is %d -- this is, within the section header table, the index of the section containing the section names.\n", $e_shstrndx);
 }
 
 sub announceELFSection {
