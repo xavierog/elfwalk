@@ -703,40 +703,30 @@ sub analyseAndExplainValue {
 
 sub walkELFHeaderMagicNumber {
 	my $elf_fh = shift;
-	my $elf_data = shift;
-	my $data;
 
-	# 0x7f, E, L, F
-	read($elf_fh, $data, 1);
-	if ($data eq "\x7f") {
-		print "    EI_MAG0 is 0x7f (127) as expected\n";
-	}
-	else {
-		exitWithMessage(100, "EI_MAG0 is not 0x7f as expected, aborting.");
-	}
+	for (my $i = 0; $i < 4; ++ $i) {
+		my $byte = sprintf('EI_MAG%d', $i);
+		my $expected = $elf->{'e_ident'}->{'_magic'}->{$byte};
+		my $value = readELFValue($elf_fh, 'char');
 
-	read($elf_fh, $data, 1);
-	if ($data eq 'E') {
-		print "    EI_MAG1 is 'E' as expected\n";
-	}
-	else {
-		exitWithMessage(100, "EI_MAG1 is not 'E' as expected, aborting.");
-	}
+		my $msg = sprintf(
+			'%s is %s (%s)',
+			colored($byte, 'value_name'),
+			colored(sprintf('0x%02X', $value), 'value'),
+			colored(sprintf('%c',     $value), 'value')
+		);
 
-	read($elf_fh, $data, 1);
-	if ($data eq 'L') {
-		print "    EI_MAG2 is 'L' as expected\n";
-	}
-	else {
-		exitWithMessage(100, "EI_MAG2 is not 'L' as expected, aborting.");
-	}
-
-	read($elf_fh, $data, 1);
-	if ($data eq 'F') {
-		print "    EI_MAG3 is 'F' as expected\n";
-	}
-	else {
-		exitWithMessage(100, "EI_MAG3 is not 'F' as expected, aborting.");
+		if ($value == $expected) {
+			say(2, $msg . ' as expected.');
+		}
+		else {
+			$msg .= sprintf(
+				' but %s (%s) was expected, aborting.',
+				colored(sprintf('0x%02X', $expected), 'value'),
+				colored(sprintf('%c',     $expected), 'value')
+			);
+			exitWithMessage(100, $msg);
+		}
 	}
 }
 
