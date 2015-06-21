@@ -319,6 +319,9 @@ coloralias('name', 'green');
 coloralias('flag_name', 'green');
 coloralias('flag_value', 'cyan');
 
+my $default_class     = ELFCLASS64;
+my $default_endianess = LITTLE_ENDIAN;
+
 # Open the file
 our $elf_fh;
 our $opening = open($elf_fh, '<' . $elf_filepath);
@@ -353,9 +356,6 @@ sub usage {
 	print "Usage: ${0} file\n";
 	exit(125);
 }
-
-my $default_class     = ELFCLASS64;
-my $default_endianess = LITTLE_ENDIAN;
 
 sub setDefaultEndianess {
 	$default_endianess = shift;
