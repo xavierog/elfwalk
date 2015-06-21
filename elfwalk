@@ -697,53 +697,96 @@ sub walkELFSection {
 	my $elf_data = shift;
 	my $section_index = shift;
 
+	my $ind = 2;
 	my $offset = sectionOffset($elf_data, $section_index);
-	printf("    Seeking to offset shoff + (%d x shentsize) = 0x%016X.\n", $section_index, $offset);
+	say(
+		$ind,
+		sprintf(
+			"Seeking to offset shoff + (%s x shentsize) = %s.",
+			colored($section_index, 'index'),
+			formatOffset($offset)
+		)
+	);
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
+	my $type, my $value, my $details;
 	my $section = {};
-	my $sh_name = $section->{'sh_name'} = readValue($elf_fh, 4, UNSIGNED);
-	printf("    sh_name is 0x%08X -- this offset is used to locate the section name.\n", $sh_name);
+	# For each entry of a section header...
+	for my $entry (@{$elf_structures->{'section_header'}->{'ordered_entries'}}) {
+		# get its type, ...
+		$type = $elf_structures->{'section_header'}->{$entry};
+		# read its value, ...
+		$value = $section->{$entry} = readELFValue($elf_fh, $type);
+		# and provide a first basic explanation.
+		say($ind, analyseAndExplainValue($section->{$entry}, $entry, $type));
 
-	my $sh_type = $section->{'sh_type'} = readValue($elf_fh, 4, UNSIGNED);
-	printf("    sh_type is 0x%08X -- this is the section type\n", $sh_name);
-	# TODO -- see table 8
-
-	my $sh_flags = $section->{'sh_flags'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("    sh_flags is 0x%016X -- it identifies the attributes of the section.\n", $sh_flags);
-	# TODO -- see table 9
-
-	my $sh_addr = $section->{'sh_addr'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("    sh_addr is 0x%016X -- virtual address of the section in memory.\n", $sh_addr);
-	# TODO check if zero
-
-	my $sh_offset = $section->{'sh_offset'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("    sh_offset is 0x%016X -- offset, in bytes, of the section in the file.\n", $sh_offset);
-
-	my $sh_size = $section->{'sh_size'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("    sh_size is %d -- size, in bytes of the section.\n", $sh_size);
-	# TODO check if SHT_NOBITS.
-
-	my $sh_link = $section->{'sh_link'} = readValue($elf_fh, 4, UNSIGNED);
-	printf("    sh_link is %d -- index of an associated section.\n", $sh_link);
-	# TODO -- see table 10
-
-	my $sh_info = $section->{'sh_info'} = readValue($elf_fh, 4, UNSIGNED);
-	printf("    sh_info is 0x%08X -- extra information about the section.\n", $sh_info);
-	# TODO -- see table 11
-
-	my $sh_addralign = $section->{'sh_addralign'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("    sh_addralign is 0x%016X -- required alignment of the section.\n", $sh_addralign);
-	# TODO -- this field must be a power of two.
-
-	my $sh_entsize = $section->{'sh_entsize'} = readValue($elf_fh, 8, UNSIGNED);
-	printf("    sh_entsize is 0x%016X -- size, in bytes, of each entry.\n", $sh_entsize);
-	# TODO check if zero
+		# For some entries, complete with extra explanations or details.
+		my $details = '';
+		if ($entry eq 'sh_addr') {
+			$details = "Here, zero means the section is not allocated to the memory image of the program." if (!$value);
+		}
+		elsif ($entry eq 'sh_size') {
+			if ($section->{'sh_type'} == 8) { # 8 is SHT_NOBITS
+				$details = sprintf(
+					"Here, since this is a %s section, this is the amount of space\noccupied in memory, not in the file.",
+					colored('SHT_NOBITS', 'name')
+				);
+			}
+		}
+		elsif ($entry eq 'sh_link') {
+			if ($value) {
+				# sh_link is non-zero -- what is the use of this link, considering the current section type?
+				my $sh_type = $section->{'sh_type'};
+				if (exists($elf->{'sh_link'}->{'_use'}->{$sh_type})) {
+					$details = sprintf(
+						"Here, since this is a %s section, section #%s should be \n%s",
+						colored($elf->{'sh_type'}->{'name'}->{$sh_type}, 'name'),
+						colored($section->{'sh_link'}, 'index'),
+						$elf->{'sh_link'}->{'_use'}->{$sh_type}
+					);
+				}
+			}
+		}
+		elsif ($entry eq 'sh_info') {
+			if ($value) {
+				# sh_info is non-zero -- what is the use of this info, considering the current section type?
+				my $sh_type = $section->{'sh_type'};
+				if (exists($elf->{'sh_info'}->{'_use'}->{$sh_type})) {
+					$details = sprintf(
+						"Here, since this is a %s section, this should represent \n%s.",
+						colored($elf->{'sh_type'}->{'name'}->{$sh_type}, 'name'),
+						$elf->{'sh_info'}->{'_use'}->{$sh_type}
+					);
+				}
+			}
+		}
+		elsif ($entry eq 'sh_addralign') {
+			$details = 'This value must be a power of two.';
+			if (!isPowerOfTwo($section->{'sh_addralign'})) {
+				$details = colored($details, 'error');
+			}
+		}
+		say($ind + 1, $details) if (length($details));
+	}
 
 	# Push the resulting section into $elf_data so sectionName() can leverage it.
 	$elf_data->{'sections'}->{$section_index} = $section;
 
-	my $sh_strname = $section->{'sh_strname'} = sectionName($elf_fh, $elf_data, $section_index);
+	my $sh_offname = sectionNameOffset($elf_data, $section_index);
+	if (!defined($sh_offname)) {
+		say($ind, colored('Error: unable to compute section name offset.', 'error'));
+	}
+	else {
+		my $sh_strname = sectionName($elf_fh, $elf_data, $section_index);
+		if (!length($sh_strname)) {
+			say($ind, colored('Error: unable to retrieve section name.', 'error'));
+		}
+		else {
+			$section->{'sh_strname'} = $sh_strname;
+			$sh_strname = colored($sh_strname, 'name');
+			say($ind, 'Fetched name at offset ' . formatOffset($sh_offname) . ': ' . $sh_strname);
+		}
+	}
 }
 
 sub sectionOffset {
@@ -784,10 +827,7 @@ sub sectionName {
 
 	# Compute the offset to the section name.
 	my $name_offset = sectionNameOffset($elf_data, $section_index);
-	if (!defined($name_offset)) {
-		print "    Error: unable to compute name offset.\n";
-		return undef;
-	}
+	return undef if (!defined($name_offset));
 
 	# Seek to that offset.
 	seek($elf_fh, $name_offset, Fcntl::SEEK_SET);
@@ -800,8 +840,12 @@ sub sectionName {
 		last if ($read_bytes != 1 || $char eq "\x0");
 		$name .= $char;
 	}
-	printf("    Fetched name at offset 0x%016X: %s\n", $name_offset, $name);
 	return $name;
+}
+
+sub isPowerOfTwo {
+	my $value = shift;
+	return $value && !($value & ($value - 1));
 }
 
 exit(0);
