@@ -441,6 +441,60 @@ sub analyseValue {
 	return undef;
 }
 
+sub analyseAndExplainValue {
+	my $value = shift;
+	my $table_name = shift;
+	my $type = shift;
+	my $class = shift;
+
+	my $analysis = analyseValue($table_name, $value);
+	return undef if (!defined($analysis));
+
+	my $str = sprintf(
+		'%s is %s',
+		colored($table_name, 'value_name'),
+		colored(formatValue($value, $type, $class), 'value')
+	);
+
+	if (exists($analysis->{'single_meaning'})) {
+		$str .= sprintf(' -- %s.', $analysis->{'single_meaning'});
+	}
+	elsif (exists($analysis->{'is_flag'})) {
+		if (keys(%{$analysis->{'name'}})) {
+			$str .= ", i.e. the following flags:";
+			for my $mask (keys(%{$analysis->{'name'}})) {
+				$str .= sprintf(
+					"\n  - %s (%s): %s",
+					colored($analysis->{'name'}->{$mask}, 'flag_name'),
+					colored(formatValue($mask, $type, $class), 'flag_value'),
+					$analysis->{'meaning'}->{$mask}
+				);
+			}
+		}
+		else {
+			$str .= " (no flags)";
+		}
+	}
+	elsif (exists($analysis->{'name'}) && exists($analysis->{'meaning'})) {
+		$str .= sprintf(
+			', i.e. %s: %s.',
+			colored($analysis->{'name'}, 'name'),
+			$analysis->{'meaning'}
+		);
+	}
+	elsif (exists($analysis->{'low_value'})) {
+		$str .= sprintf(
+			', between %s (%s) and %s (%s): %s',
+			$analysis->{'low_name'},
+			formatValue($analysis->{'low_value'}, $type, $class),
+			$analysis->{'high_name'},
+			formatValue($analysis->{'high_value'}, $type, $class),
+			$analysis->{'meaning'}
+		);
+	}
+	return $str;
+}
+
 sub walkELFHeaderMagicNumber {
 	my $elf_fh = shift;
 	my $elf_data = shift;
