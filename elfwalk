@@ -62,6 +62,20 @@ our $elf_data_types = {
 };
 
 our $elf_structures = {
+	'e_ident' => {
+		'ordered_entries' => [
+			'EI_CLASS',
+			'EI_DATA',
+			'EI_VERSION',
+			'EI_OSABI',
+			'EI_ABIVERSION',
+		],
+		'EI_CLASS' => 'char',
+		'EI_DATA' => 'char',
+		'EI_VERSION' => 'char',
+		'EI_OSABI' => 'char',
+		'EI_ABIVERSION' => 'char',
+	},
 	# Figure 2. ELF-64 Header
 	'file_header' => {
 		'ordered_entries' => [
@@ -121,6 +135,74 @@ our $elf_structures = {
 };
 
 our $elf = {
+	'e_ident' => {
+		'_constants' => {
+			# Table 2. ELF Identification, e_ident
+			'EI_MAG0' => 0,
+			'EI_MAG1' => 1,
+			'EI_MAG2' => 2,
+			'EI_MAG3' => 3,
+			'EI_CLASS' => 4,
+			'EI_DATA' => 5,
+			'EI_VERSION' => 6,
+			'EI_OSABI' => 7,
+			'EI_ABIVERSION' => 8,
+			'EI_PAD' => 9,
+			'EI_NIDENT' => 16,
+		},
+		'_magic' => {
+			'EI_MAG0' => 0x7f,
+			'EI_MAG1' => 0x45, # 'E'
+			'EI_MAG2' => 0x4C, # 'L'
+			'EI_MAG3' => 0x46, # 'F'
+		},
+	},
+	# Table 3. Object File Classes, e_ident[EI_CLASS]
+	'EI_CLASS' => {
+		'unexplained_value' => 'fatal',
+		'name' => {
+			1 => 'ELFCLASS32',
+			2 => 'ELFCLASS64',
+		},
+		'meaning' => {
+			1 => '32-bit objects',
+			2 => '64-bit objects',
+		},
+	},
+	# Table 4. Data Encodings, e_ident[EI_DATA]
+	'EI_DATA' => {
+		'unexplained_value' => 'fatal',
+		'name' => {
+			1 => 'ELFDATA2LSB',
+			2 => 'ELFDATA2MSB',
+		},
+		'meaning' => {
+			1 => 'object file data structure are little-endian',
+			2 => 'object file data structure are big-endian',
+		},
+	},
+	'EI_VERSION' => {
+		'unexplained_value' => 'i.e. not EV_CURRENT, ignoring',
+		'name' => { 1 => 'EV_CURRENT' },
+		'meaning' => { 1 => 'this is the expected version of the object file format' },
+	},
+	# Table 5. Operating System and ABI Identifiers, e_ident[EI_OSABI]
+	'EI_OSABI' => {
+		'unexplained_value' => 'fatal',
+		'name' => {
+			0   => 'ELFOSABI_SYSV',
+			1   => 'ELFOSABI_HPUX',
+			255 => 'ELFOSABI_STANDALONE',
+		},
+		'meaning' => {
+			0   => 'System V ABI',
+			1   => 'HP-UX operating system',
+			255 => 'Standalone (embedded) application',
+		},
+	},
+	'EI_ABIVERSION' => {
+		'single_meaning' => 'version of the ABI for which the object is prepared'
+	},
 	# Table 6. Object File Types, e_type
 	'e_type' => {
 		'unexplained_value' => 'fatal',
