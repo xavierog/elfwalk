@@ -89,6 +89,114 @@ our $elf_structures = {
 	},
 };
 
+our $elf = {
+	'sh_name' => {
+		'single_meaning' => 'this offset is used to locate the section name',
+	},
+	# Table 8. Section Types, sh_type
+	'sh_type' => {
+		'name' => {
+			0 => 'SHT_NULL',
+			1 => 'SHT_PROGBITS',
+			2 => 'SHT_SYMTAB',
+			3 => 'SHT_STRTAB',
+			4 => 'SHT_RELA',
+			5 => 'SHT_HASH',
+			6 => 'SHT_DYNAMIC',
+			7 => 'SHT_NOTE',
+			8 => 'SHT_NOBITS',
+			9 => 'SHT_REL',
+			10 => 'SHT_SHLIB',
+			11 => 'SHT_DYNSYM',
+		},
+		'meaning' => {
+			0 => 'marks an unused section header',
+			1 => 'contains information defined by the program',
+			2 => 'contains a linker symbol table',
+			3 => 'contains a string table',
+			4 => 'contains "Rela" type relocation entries',
+			5 => 'contains a symbol hash table',
+			6 => 'contains dynamic linking tables',
+			7 => 'contains note information',
+			8 => 'contains uninitialized space; does not occupy any space in the file',
+			9 => 'contains "Rel" type relocation entries',
+			10 => 'reserved',
+			11 => 'contains a dynamic loader symbol table',
+		},
+		'ranges' => {
+			'OS' => {
+				'meaning' => 'environment-specific use',
+				'low_value' => 0x60000000,
+				'low_name' => 'SHT_LOOS',
+				'high_value' => 0x6FFFFFFF,
+				'high_name' => 'SHT_HIOS',
+			},
+			'PROC' => {
+				'meaning' => 'processor-specific use',
+				'low_value' => 0x70000000,
+				'low_name' => 'SHT_LOPROC',
+				'high_value' => 0x7FFFFFFF,
+				'high_name' => 'SHT_HIPROC',
+			},
+		}
+	},
+	# Table 9. Section Attributes, sh_flags
+	'sh_flags' => {
+		'is_flag' => 1,
+		'name' => {
+			1 => 'SHF_WRITE',
+			2 => 'SHF_ALLOC',
+			4 => 'SHF_EXECINSTR',
+			0x0F000000 => 'SHT_MASKOS',
+			0xF0000000 => 'SHT_MASKPROC',
+		},
+		'meaning' => {
+			1 => 'section contains writable data',
+			2 => 'section is allocated in memory image of program',
+			4 => 'section contains executable instructions',
+			0x0F000000 => 'environment-specific use',
+			0xF0000000 => 'processor-specific use',
+		},
+	},
+	'sh_addr' => {
+		'single_meaning' => 'virtual address of the section in memory',
+	},
+	'sh_offset' => {
+		'single_meaning' => 'offset, in bytes, of the section contents in the file',
+	},
+	'sh_size' => {
+		'single_meaning' => 'size, in bytes, of the section',
+	},
+	'sh_link' => {
+		'single_meaning' => 'index of an associated section',
+		'_use' => {
+			# Table 10. Use of the sh_link Field
+			6  => 'a string table used by entries in this section',
+			5  => 'a symbol table to which the hash table applies',
+			9  => 'a symbol table referenced by relocations',
+			4  => 'a symbol table referenced by relocations',
+			2  => 'a string table used by entries in this section',
+			11 => 'a string table used by entries in this section',
+		}
+	},
+	'sh_info' => {
+		'single_meaning' => 'extra information about the section',
+		'_use' => {
+			# Table 11. Use of the sh_info Field
+			9  => 'the index of the section to which relocations apply',
+			4  => 'the index of the section to which relocations apply',
+			2  => 'the index of the first non-local symbol (i.e., number of local symbols)',
+			11 => 'the index of the first non-local symbol (i.e., number of local symbols)',
+		}
+	},
+	'sh_addralign' => {
+		'single_meaning' => 'contains the required alignment of the section.',
+	},
+	'sh_entsize' => {
+		'single_meaning' => 'size, in bytes, of each entry; only makes sense for sections that contain fixed-size entries.',
+	},
+};
+
 # Simple arguments parsing: require one and exactly one argument.
 usage() if @ARGV != 1;
 
