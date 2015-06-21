@@ -418,10 +418,12 @@ sub readValue {
 	my $signed = shift;
 	my $endianess = shift;
 
-	# Default values.
-	$signed = UNSIGNED if (!defined($signed));
-	if (!defined($endianess) || $endianess != LITTLE_ENDIAN || $endianess != BIG_ENDIAN) {
-		$endianess = $default_endianess;
+	# Check arguments.
+	if (!defined($signed) || ($signed != SIGNED && $signed != UNSIGNED)) {
+		exitWithMessage(8, 'attempted to call readValue with invalid signedness');
+	}
+	if (!defined($endianess) || ($endianess != LITTLE_ENDIAN && $endianess != BIG_ENDIAN)) {
+		exitWithMessage(8, 'attempted to call readValue with invalid endianess');
 	}
 
 	my $data;
