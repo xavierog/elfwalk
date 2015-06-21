@@ -380,7 +380,7 @@ sub walkELF {
 	my $elf_fh = shift;
 
 	my $elf_data = {};
-	print "Parsing file header\n";
+	say(0, colored("Parsing file header", 'main_action'));
 	walkELFHeaderMagicNumber($elf_fh, $elf_data);
 	walkELFHeaderIdent($elf_fh, $elf_data);
 	walkELFHeaderFields($elf_fh, $elf_data);
