@@ -745,59 +745,24 @@ sub walkELFHeaderIdent {
 	my $elf_data = shift;
 	my $data;
 
-	read($elf_fh, $data, 1);
-	if ($data eq "\x1") {
-		print "    EI_CLASS is 1, i.e. ELFCLASS32: 32-bit objects\n";
-		setDefaultClass(ELFCLASS32);
-	}
-	elsif ($data eq "\x2") {
-		print "    EI_CLASS is 2, i.e. ELFCLASS64: 64-bit objects\n";
-		setDefaultClass(ELFCLASS64);
-	}
-	else {
-		exitWithMessage(100, "EI_CLASS is neither 1 nor 2 as expected, aborting.");
+	my $ind = 2;
+	for my $entry (@{$elf_structures->{'e_ident'}->{'ordered_entries'}}) {
+		my $type = $elf_structures->{'e_ident'}->{$entry};
+		my $value = $elf_data->{$entry} = readELFValue($elf_fh, $type);
+		say($ind, analyseAndExplainValue($elf_data->{$entry}, $entry, $type));
+
+		if ($entry eq 'EI_CLASS') {
+			setDefaultClass($value);
+		}
+		elsif ($entry eq 'EI_DATA') {
+			# Our constants are "0 and 1" vs "1 and 2" for the ELF format.
+			setDefaultEndianess($value - 1);
+		}
 	}
 
-	read($elf_fh, $data, 1);
-	if ($data eq "\x1") {
-		print "    EI_DATA is 1, i.e. ELFDATA2LSB: object file data structures are little-endian\n";
-		setDefaultEndianess(LITTLE_ENDIAN);
-	}
-	elsif ($data eq "\x2") {
-		print "    EI_DATA is 1, i.e. ELFDATA2MSB: object file data structures are big-endian\n";
-		setDefaultEndianess(BIG_ENDIAN);
-	}
-	else {
-		exitWithMessage(100, "EI_DATA is neither 1 nor 2 as expected, aborting.");
-	}
-
-	read($elf_fh, $data, 1);
-	if ($data eq "\x1") {
-		print "    EI_VERSION is 1, i.e. EV_CURRENT.\n";
-	}
-	else {
-		printf("    EI_VERSION is 0x%X, i.e. not EV_CURRENT, ignoring.\n", ord($data));
-	}
-
-	read($elf_fh, $data, 1);
-	if ($data eq "\x0") {
-		print "    EI_OSABI is 0, i.e. ELFOSABI_SYSV: System V ABI\n";
-	}
-	elsif ($data eq "\x1") {
-		print "    EI_OSABI is 1, i.e. ELFOSABI_HPUX: HP-UX operating system\n";
-	}
-	elsif ($data eq "\xff") {
-		print "    EI_OSABI is 255, i.e. ELFOSABI_STANDALONE: standalone (embedded) application\n";
-	}
-	else {
-		printf("    EI_OSABI is 0x%02X, which is unexpected, ignoring.\n", ord($data));
-	}
-
-	read($elf_fh, $data, 1);
-	printf("    EI_ABIVERSION is 0x%02X.\n", ord($data));
-
-	print "    Seeking to offset EI_NIDENT (16).\n";
-	seek($elf_fh, 16, Fcntl::SEEK_SET);
+	my $ei_nident = $elf->{'e_ident'}->{'_constants'}->{'EI_NIDENT'};
+	say($ind, sprintf('Seeking to offset EI_NIDENT (%d)', $ei_nident));
+	seek($elf_fh, $ei_nident, Fcntl::SEEK_SET);
 }
 
 sub walkELFHeaderFields {
