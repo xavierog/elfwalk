@@ -439,7 +439,10 @@ sub readValue {
 	}
 
 	my $unpack_arg;
-	if ($size == 2 || $size == 4) {
+	if ($size == 1) {
+		$unpack_arg = ($signed ? 'c' : 'C');
+	}
+	elsif ($size == 2 || $size == 4) {
 		# n stands for "network" (i.e. big-endian)
 		# v stands for "VAX" (i.e. little-endian)
 		$unpack_arg = $endianess ? 'n' : 'v';
