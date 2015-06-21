@@ -293,10 +293,10 @@ our $elf = {
 		}
 	},
 	'sh_addralign' => {
-		'single_meaning' => 'contains the required alignment of the section.',
+		'single_meaning' => 'contains the required alignment of the section',
 	},
 	'sh_entsize' => {
-		'single_meaning' => 'size, in bytes, of each entry; only makes sense for sections that contain fixed-size entries.',
+		'single_meaning' => 'size, in bytes, of each entry; only makes sense for sections that contain fixed-size entries',
 	},
 };
 
