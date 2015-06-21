@@ -417,22 +417,33 @@ sub walkELFHeaderFields {
 	printf("  e_shstrndx is %d -- this is, within the section header table, the index of the section containing the section names.\n", $e_shstrndx);
 }
 
+sub announceELFSection {
+	my ($ind, $prefix, $index, $suffix) = @_;
+	say(
+		$ind,
+		colored($prefix . ' section #', 'underline') .
+		colored($index, 'index underline') .
+		colored($suffix, 'underline')
+	);
+}
+
 sub walkELFSections {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 
-	print "Parsing sections\n";
+	say(0, colored('Parsing sections', 'main_action'));
 	$elf_data->{'sections'} = {};
+	my $ind = 1;
 
-	printf("  Parsing section #%d first as it holds section names:\n", $elf_data->{'e_shstrndx'});
+	announceELFSection($ind, 'Parsing', $elf_data->{'e_shstrndx'}, ' first as it holds section names:');
 	walkELFSection($elf_fh, $elf_data, $elf_data->{'e_shstrndx'});
 
-	printf("  Not parsing section #0 as it is reserved.\n");
-	printf("    It must contain only zeroes.\n");
+	announceELFSection($ind, 'Not parsing', 0, ' as it is reserved.');
+	say($ind + 1, "It must contain only zeroes.");
 
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		next if ($i == $elf_data->{'e_shstrndx'});
-		printf("  Parsing section #%d:\n", $i);
+		announceELFSection($ind, 'Parsing', $i, ':');
 		walkELFSection($elf_fh, $elf_data, $i);
 	}
 }
