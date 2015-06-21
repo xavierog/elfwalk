@@ -90,6 +90,18 @@ binmode($elf_fh);
 walkELF($elf_fh);
 close($elf_fh);
 
+sub say {
+	my $indent = shift;
+	$indent = '  'x$indent;
+	my $string;
+	for my $str (@_) {
+		next if (!defined($str));
+		$string = $str;
+		$string =~ s/^/${indent}/mgs;
+		print $string . "\n";
+	}
+}
+
 sub exitWithMessage {
 	my $rc = $_[0];
 	my $message = $_[1];
