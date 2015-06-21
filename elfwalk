@@ -413,6 +413,7 @@ if (!$opening) {
 binmode($elf_fh);
 walkELF($elf_fh);
 close($elf_fh);
+exit(0);
 
 sub say {
 	my $indent = shift;
@@ -967,5 +968,3 @@ sub isPowerOfTwo {
 	my $value = shift;
 	return $value && !($value & ($value - 1));
 }
-
-exit(0);
