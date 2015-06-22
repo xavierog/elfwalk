@@ -382,6 +382,10 @@ our $elf = {
 	},
 };
 
+my $columns = 80;
+$SIG{'WINCH'} = \&updateNumberOfColumns;
+updateNumberOfColumns();
+
 # Simple arguments parsing: require one and exactly one argument.
 usage() if @ARGV != 1;
 
@@ -414,6 +418,28 @@ binmode($elf_fh);
 walkELF($elf_fh);
 close($elf_fh);
 exit(0);
+
+sub updateNumberOfColumns {
+	$columns = numberOfColumns();
+}
+
+sub numberOfColumns {
+	{
+		$SIG{__WARN__} = sub { };
+		require "sys/ioctl.ph";
+	}
+	# Taken from perldoc -q "get the screen size".
+	my $tty_fh;
+	my $winsize;
+	if (!open($tty_fh, '+</dev/tty')) {
+		return 'notty';
+	}
+	if (!ioctl($tty_fh, &TIOCGWINSZ, $winsize)) {
+		return 'notty';
+	}
+	my ($row, $col, $xpixel, $ypixel) = unpack('S4', $winsize);
+	return $col;
+}
 
 sub say {
 	my $indent = shift;
