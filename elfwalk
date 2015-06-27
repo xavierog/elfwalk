@@ -1378,7 +1378,7 @@ sub walkELFSections {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 
-	say(0, colored('Parsing sections', 'main_action'));
+	say(0, colored('Parsing section headers', 'main_action'));
 	$elf_data->{'sections'} = {};
 	my $ind = 1;
 
