@@ -1425,7 +1425,20 @@ sub walkELFSection {
 
 		# For some entries, complete with extra explanations or details.
 		my $details = '';
-		if ($entry eq 'sh_addr') {
+		if ($entry eq 'sh_type') {
+			# Store the human name of the type for later use.
+			my $analysis = analyseValue('sh_type', $value);
+			$section->{'_type'} = $analysis->{'name'} if (exists($analysis->{'name'}));
+			if (exists($analysis->{'high_name'})) {
+				$section->{'_type'} = $analysis->{'low_name'} . '-' . $analysis->{'high_name'};
+			}
+		}
+		elsif ($entry eq 'sh_flags') {
+			# Store the human names of the flags for later use.
+			my $analysis = analyseValue('sh_flags', $value);
+			$section->{'_flags'} = $analysis->{'name'} if (exists($analysis->{'name'}));
+		}
+		elsif ($entry eq 'sh_addr') {
 			$details = "Here, zero means the section is not allocated to the memory image of the program." if (!$value);
 		}
 		elsif ($entry eq 'sh_size') {
