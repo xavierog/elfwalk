@@ -1650,9 +1650,14 @@ sub walkELFSection {
 			say($ind, colored('Error: unable to retrieve section name.', 'error'));
 		}
 		else {
-			$section->{'sh_strname'} = $sh_strname;
+			$section->{'_name'} = $sh_strname;
+			my $analysis = analyseSectionName($sh_strname);
 			$sh_strname = colored($sh_strname, 'name');
 			say($ind, 'Fetched name at offset ' . formatOffset($sh_offname) . ': ' . $sh_strname);
+			if (defined($analysis->{'long'})) {
+				say($ind, colored('Expected use based on the name:', 'value_name'));
+				say($ind + 1, $analysis->{'long'});
+			}
 		}
 	}
 }
