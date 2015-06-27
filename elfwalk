@@ -1545,6 +1545,23 @@ sub walkELFSections {
 		announceELFSection($ind, 'Parsing', $i, ':');
 		walkELFSection($elf_fh, $elf_data, $i);
 	}
+
+	# Display a summary of sections.
+	say(0, colored('Summary of sections', 'main_action'));
+	my $table_format = '%3s %-30s %-20s %-30s %-30s';
+	say(1, sprintf($table_format, '#', 'Name', 'Type', 'Flags', 'Use'));
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		my $section = $elf_data->{'sections'}->{$i};
+		my $table_line = sprintf(
+			$table_format,
+			$i,
+			colored($section->{'_name'}, 'name'),
+			$section->{'_type'},
+			formatFlags(values(%{$section->{'_flags'}})),
+			analyseSectionName($section->{'_name'})->{'short'}
+		);
+		say(1, $table_line);
+	}
 }
 
 sub walkELFSection {
