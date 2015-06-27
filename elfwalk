@@ -1175,7 +1175,7 @@ sub analyseValue {
 	}
 
 	# Are we dealing with a set of flags, by chance?
-	if (exists($table->{is_flag}) && $table->{is_flag}) {
+	if (exists($table->{'is_flag'}) && $table->{'is_flag'}) {
 		$return->{'is_flag'} = 1;
 		$return->{'name'} = {};
 		$return->{'meaning'} = {};
