@@ -1410,6 +1410,32 @@ sub analyseAndExplainValue {
 	return $str;
 }
 
+sub analyseSectionName {
+	my $name = shift;
+	my $return = {};
+	my @specs = (
+		'gnu_special_sections',
+		'lsb5-core-amd64_additional_special_sections',
+		'lsb5-core-generic_additional_special_sections',
+		'elf_special_sections',
+	);
+	for my $desc_type ('short', 'long') {
+		for my $sections_type (@specs) {
+			my $known_sections = $elf->{$sections_type}->{$desc_type};
+			if (exists($known_sections->{$name})) {
+				$return->{$desc_type} = $known_sections->{$name};
+				last;
+			}
+			elsif (exists($known_sections->{'.rel'})) {
+				if ($name =~ m/^\.rela?\.(.+)$/) {
+					$return->{$desc_type} = sprintf($known_sections->{'.rel'}, $1);
+				}
+			}
+		}
+	}
+	return $return;
+}
+
 sub walkELFHeaderMagicNumber {
 	my $elf_fh = shift;
 
