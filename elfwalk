@@ -1149,6 +1149,12 @@ sub formatOffset {
 	return colored($offset, 'offset');
 }
 
+sub formatFlags {
+	my @flags = sort(@_);
+	my $flags_string = join('+', @flags) || '-';
+	return $flags_string;
+}
+
 sub walkELF {
 	my $elf_fh = shift;
 
