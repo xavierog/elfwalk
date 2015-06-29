@@ -1806,6 +1806,89 @@ sub walkELFSection {
 	}
 }
 
+sub walkSymbolTable {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 2;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	# How many entries do we intend to read?
+	my $count = $section->{'sh_size'} / $section->{'sh_entsize'};
+
+	# Where should we read names from?
+	my $strtab_offset = 0;
+	my $strtab = $elf_data->{'sections'}->{$section_index}->{'sh_link'};
+	if ($strtab) {
+		say(
+			$ind,
+			sprintf(
+				'This section is associated with section #%s: %s, of type %s.',
+				colored($strtab, 'index'),
+				colored($elf_data->{'sections'}->{$strtab}->{'_name'}, 'name'),
+				colored($elf_data->{'sections'}->{$strtab}->{'_type'}, 'name')
+			),
+		);
+		if ($elf_data->{'sections'}->{$strtab}->{'_type'} eq 'SHT_STRTAB') {
+			$strtab_offset = $elf_data->{'sections'}->{$strtab}->{'sh_offset'};
+			say($ind + 1, sprintf('Symbol names will be read from it, i.e. from offset %s.', formatOffset($strtab_offset)));
+		}
+		else {
+			say($ind + 1, 'Symbol names will not be read from there though, as its type is not SHT_STRTAB.');
+		}
+	}
+
+	my $arch = $elf_data->{'EI_CLASS'};
+	my $st_info = $elf_structures->{'symbol_table'}->{$arch};
+
+	# Iterate over symbol table entries.
+	for (my $i = 0; $i < $count; ++ $i) {
+		say($ind, sprintf('[%d/%d] Symbol at index #%s:', $i + 1, $count, $i));
+
+		if (!$i) {
+			say($ind + 1, 'Skipping as the symbol table entry for index 0 (STN_UNDEF) is reserved');
+			next;
+		}
+
+		my $offset = $section->{'sh_offset'} + ($i * $section->{'sh_entsize'});
+		say($ind + 1, sprintf('Seeking to offset sh_offset + (%s x sh_entsize) = %s', colored($i, 'index'), formatOffset($offset)));
+		seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+		# For each field of the current entry...
+		for my $entry (@{$st_info->{'ordered_entries'}}) {
+			# read its value, ...
+			my $value = readELFValue($elf_fh, $st_info->{$entry});
+			$section->{'_symbols'}->{$i}->{$entry} = $value;
+			# and provide a first basic explanation.
+			say($ind + 2, analyseAndExplainValue($value, $entry, $st_info->{$entry}));
+
+			if ($entry eq 'st_info') {
+				my $st_bind = ($value >> 4);
+				my $st_type = ($value & 0xf);
+				say($ind + 3, analyseAndExplainValue($st_bind, 'st_bind', $st_info->{$entry}));
+				say($ind + 3, analyseAndExplainValue($st_type, 'st_type', $st_info->{$entry}));
+			}
+			elsif ($entry eq 'st_shndx' && $value) {
+				say(
+					$ind + 3,
+					sprintf(
+						'Here, %s is the index of section %s.',
+						colored($value, 'value'),
+						colored($elf_data->{'sections'}->{$value}->{'_name'}, 'name')
+					)
+				);
+			}
+		}
+		if ($strtab_offset) {
+			my $name_offset = $strtab_offset + $section->{'_symbols'}->{$i}->{'st_name'};
+			my $name = readStringAtOffset($elf_fh, $name_offset);
+			say($ind + 2, sprintf('Fetched name at offset %s: %s', formatOffset($name_offset), colored($name, 'name')));
+		}
+	}
+}
+
 sub sectionOffset {
 	my $elf_data = shift;
 	my $section_index = shift;
