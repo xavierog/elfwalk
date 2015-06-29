@@ -130,6 +130,40 @@ our $elf_structures = {
 		'sh_addralign' => 'Xword',
 		'sh_entsize' => 'Xword',
 	},
+	'symbol_table' => {
+		ELFCLASS32() => {
+			'ordered_entries' => [
+				'st_name',
+				'st_value',
+				'st_size',
+				'st_info',
+				'st_other',
+				'st_shndx',
+			],
+			'st_name' => 'Word',
+			'st_value' => 'Addr',
+			'st_size' => 'Word',
+			'st_info' => 'char',
+			'st_other' => 'char',
+			'st_shndx' => 'Half',
+		},
+		ELFCLASS64() => {
+			'ordered_entries' => [
+				'st_name',
+				'st_info',
+				'st_other',
+				'st_shndx',
+				'st_value',
+				'st_size',
+			],
+			'st_name' => 'Word',
+			'st_info' => 'char',
+			'st_other' => 'char',
+			'st_shndx' => 'Half',
+			'st_value' => 'Addr',
+			'st_size' => 'Xword',
+		},
+	},
 };
 
 our $elf = {
@@ -1055,6 +1089,99 @@ our $elf = {
 			'.gnu.hash' => 'This section holds a symbol hash table (following GNU ELF).',
 			'.note.gnu.build-id' => 'According to the GNU linker (ld) man page, the contents of the note are unique bits identifying this linked file.',
 		}
+	},
+	'st_name' => {
+		'single_meaning' => 'this offset is used to locate the symbol name',
+	},
+	'st_value' => {
+		'single_meaning' => 'associated value (absolute value or address)',
+	},
+	'st_size' => {
+		'single_meaning' => 'associated size',
+	},
+	'st_info' => {
+		'single_meaning' => 'type and binding attributes (st_type and st_bind)',
+	},
+	'st_bind' => {
+		'name' => {
+			0 => 'STB_LOCAL',
+			1 => 'STB_GLOBAL',
+			2 => 'STB_WEAK',
+		},
+		'meaning' => {
+			0 => 'the symbol is not visible outside the object file',
+			1 => 'the symbol is visible to all object files being combined',
+			2 => 'the symbol is visible to all object files with lower precedence',
+		},
+		'ranges' => {
+			'OS' => {
+				'meaning' => 'operating system-specific semantics',
+				'low_value' => 10,
+				'low_name' => 'STB_LOOS',
+				'high_value' => 12,
+				'high_name' => 'STB_HIOS',
+			},
+			'PROC' => {
+				'meaning' => 'processor-specific semantics',
+				'low_value' => 13,
+				'low_name' => 'STB_LOPROC',
+				'high_value' => 15,
+				'high_name' => 'STB_HIPROC',
+			},
+		},
+	},
+	'st_type' => {
+		'name' => {
+			0 => 'STT_NOTYPE',
+			1 => 'STT_OBJECT',
+			2 => 'STT_FUNC',
+			3 => 'STT_SECTION',
+			4 => 'STT_FILE',
+			5 => 'STT_COMMON',
+			6 => 'STT_TLS',
+		},
+		'meaning' => {
+			0 => 'the symbol type is not specified',
+			1 => 'the symbol is associated with a data object, such as a variable, an array, etc.',
+			2 => 'the symbol is associated with a function or other executable code',
+			3 => 'the symbol is associated with a section',
+			4 => 'the symbol\'s name gives the name of the source file associated with the object file',
+			5 => 'the symbol labels an uninitialized common block',
+			6 => 'the symbol specifies a Thread-Local Storage entity',
+		},
+		'ranges' => {
+			'OS' => {
+				'meaning' => 'operating system-specific semantics',
+				'low_value' => 10,
+				'low_name' => 'STT_LOOS',
+				'high_value' => 12,
+				'high_name' => 'STT_HIOS',
+			},
+			'PROC' => {
+				'meaning' => 'processor-specific semantics',
+				'low_value' => 13,
+				'low_name' => 'STT_LOPROC',
+				'high_value' => 15,
+				'high_name' => 'STT_HIPROC',
+			},
+		},
+	},
+	'st_other' => {
+		'name' => {
+			0 => 'STV_DEFAULT',
+			1 => 'STV_INTERNAL',
+			2 => 'STV_HIDDEN',
+			3 => 'STV_PROTECTED',
+		},
+		'meaning' => {
+			0 => 'respect the symbol\'s binding type',
+			1 => 'visible in other components but not preemptable',
+			2 => 'not visible to other components',
+			3 => 'defined by processor supplements',
+		},
+	},
+	'st_shndx' => {
+		'single_meaning' => 'index of the related section, if any',
 	},
 };
 
