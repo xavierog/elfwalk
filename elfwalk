@@ -1719,8 +1719,22 @@ sub sectionName {
 	my $name_offset = sectionNameOffset($elf_data, $section_index);
 	return undef if (!defined($name_offset));
 
+	return readStringAtOffset($elf_fh, $name_offset);
+}
+
+sub readStringAtOffset {
+	my $elf_fh = shift;
+	my $offset = shift;
+
 	# Seek to that offset.
-	seek($elf_fh, $name_offset, Fcntl::SEEK_SET);
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	# Read data into a string until we stumble upon EOF or 0x00.
+	return readNullTerminatedString($elf_fh);
+}
+
+sub readNullTerminatedString {
+	my $elf_fh = shift;
 
 	# Read data into a string until we stumble upon EOF or 0x00.
 	my $name;
