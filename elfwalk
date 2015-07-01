@@ -1181,7 +1181,19 @@ our $elf = {
 		},
 	},
 	'st_shndx' => {
-		'single_meaning' => 'index of the related section, if any',
+		'name' => {
+			0 => 'SHN_UNDEF',
+			0xFFF1 => 'SHN_ABS',
+			0xFFF2 => 'SHN_COMMON',
+			0xFFFF => 'SHN_XINDEX',
+		},
+		'meaning' => {
+			0 => colored('this symbol is to be linked from another file', 'bright_yellow'),
+			0xFFF1 => 'the symbol has an absolute value that will not change because of relocation',
+			0xFFF2 => 'the symbol labels a common block that has not yet been allocated',
+			0xFFFF => 'an escape value which indicates that the symbol refers to a specific location within a section, but that the section header index for that section is too large to be represented directly in the symbol table entry.',
+		},
+		'unexplained_value' => 'this is the index of the related section',
 	},
 };
 
