@@ -1891,7 +1891,7 @@ sub walkSymbolTable {
 				say($ind + 3, analyseAndExplainValue($st_bind, 'st_bind', $st_info->{$entry}));
 				say($ind + 3, analyseAndExplainValue($st_type, 'st_type', $st_info->{$entry}));
 			}
-			elsif ($entry eq 'st_shndx' && $value) {
+			elsif ($entry eq 'st_shndx') {
 				say(
 					$ind + 3,
 					sprintf(
@@ -1899,7 +1899,38 @@ sub walkSymbolTable {
 						colored($value, 'value'),
 						colored($elf_data->{'sections'}->{$value}->{'_name'}, 'name')
 					)
-				);
+				) unless (exists($elf->{'st_shndx'}->{'name'}->{$value}));
+			}
+			elsif ($entry eq 'st_value' && $value) {
+				my $type_analysis = analyseValue('e_type', $elf_data->{'e_type'});
+				# Refine analysis based on file type.
+				if ($type_analysis->{'name'} =~ m/ET_EXEC|ET_DYN|ET_REL/) {
+					# Assume ET_EXEC or ET_DYN first.
+					my $extra_explanation1 = 'this file has type ' . colored($type_analysis->{'name'}, 'name');
+					my $extra_explanation2 = 'the virtual address of this symbol, assuming the associated section was loaded in memory at virtual address ' . colored('sh_addr', 'value_name');
+
+					# Overwrite or complete if ET_REL.
+					if ($type_analysis->{'name'} eq 'ET_REL') {
+						# Refine analysis based on st_shndx.
+						if ($section->{'_symbols'}->{$i}->{'st_shndx'} == 0xFFF2) {
+							$extra_explanation1 .= ' and since ' . colored('st_shndx', 'value_name') . ' is ' . colored('SHN_COMMON', 'name');
+							$extra_explanation2 = 'alignment constraints for this symbol'
+						}
+						else {
+							$extra_explanation2 = 'a section offset from the beginning of the section that ' . colored('st_shndx', 'value_name') . ' identifies';
+						}
+					}
+
+					say(
+						$ind + 3,
+						sprintf(
+							'Here, since %s, %s holds %s.',
+							$extra_explanation1,
+							colored('st_value', 'value_name'),
+							$extra_explanation2
+						)
+					);
+				}
 			}
 		}
 		if ($strtab_offset) {
