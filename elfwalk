@@ -1435,6 +1435,28 @@ sub walkELF {
 	walkELFSections($elf_fh, $elf_data);
 }
 
+sub analyseMachineSpecificValue {
+	my $table_name = shift;
+	my $value = shift;
+	my $machine = shift;
+
+	if (defined($machine)) {
+		# Does $machine look like a machine name?
+		if ($machine !~ m#^EM_#) {
+			# Seems not -- assume $machine is a e_machine value instead.
+			$machine = $elf->{'e_machine'}->{'name'}->{$machine};
+		}
+		# Ensure $machine does look like a machine name now.
+		if (defined($machine) && $machine =~ m#^EM_#) {
+			my $machine_table_name = $table_name . '_' . $machine;
+			if (exists($elf->{$machine_table_name})) {
+				return analyseValue($machine_table_name, $value);
+			}
+		}
+	}
+	return analyseValue($table_name, $value);
+}
+
 sub analyseValue {
 	my $table_name = shift;
 	my $value = shift;
@@ -1498,8 +1520,9 @@ sub analyseAndExplainValue {
 	my $table_name = shift;
 	my $type = shift;
 	my $class = shift;
+	my $machine = shift;
 
-	my $analysis = analyseValue($table_name, $value);
+	my $analysis = analyseMachineSpecificValue($table_name, $value, $machine);
 	return undef if (!defined($analysis));
 
 	my $str = sprintf(
