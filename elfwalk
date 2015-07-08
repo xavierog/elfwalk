@@ -869,6 +869,18 @@ our $elf = {
 			16 => 'SHT_PREINIT_ARRAY',
 			17 => 'SHT_GROUP',
 			18 => 'SHT_SYMTAB_SHNDX',
+			# 0X6FFFFFF5 to 0X6FFFFFFC come from the GNU C Library's elf.h.
+			0X6FFFFFF5 => 'SHT_GNU_ATTRIBUTES',
+			0x6FFFFFF6 => 'SHT_GNU_HASH',
+			0X6FFFFFF7 => 'SHT_GNU_LIBLIST',
+			0X6FFFFFF8 => 'SHT_CHECKSUM',
+			0X6FFFFFFA => 'SHT_SUNW_move',
+			0X6FFFFFFB => 'SHT_SUNW_COMDAT',
+			0X6FFFFFFC => 'SHT_SUNW_syminfo',
+			# These are the additional section types defined by the LSB.
+			0X6FFFFFFD => 'SHT_GNU_verdef',
+			0X6FFFFFFE => 'SHT_GNU_verneed',
+			0X6FFFFFFF => 'SHT_GNU_versym',
 		},
 		'meaning' => {
 			0 => 'marks an unused section header',
@@ -888,6 +900,16 @@ our $elf = {
 			16 => 'contains an array of pointers to functions that are invoked before all other initialization functions',
 			17 => 'defines a section group, i.e. a set of sections that are related and that must be treated specially by the linker',
 			18 => 'used with SHN_XINDEX',
+			0X6FFFFFF5 => 'Object attributes',
+			0x6FFFFFF6 => 'GNU-style hash table',
+			0X6FFFFFF7 => 'Prelink library list',
+			0X6FFFFFF8 => 'Checksum for DSO content',
+			0X6FFFFFFA => 'Sun-specific',
+			0X6FFFFFFB => 'Sun-specific',
+			0X6FFFFFFC => 'Sun-specific',
+			0X6FFFFFFD => 'contains the symbol versions that are provided',
+			0X6FFFFFFE => 'contains the symbol versions that are required',
+			0X6FFFFFFF => 'contains the Symbol Version Table',
 		},
 		'ranges' => {
 			'OS' => {
