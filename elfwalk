@@ -10,7 +10,17 @@
 # http://sam.zoy.org/wtfpl/COPYING for more details.
 
 # About formats implemented:
-#  http://www.sco.com/developers/gabi/latest/contents.html
+
+# System V Application Binary Interface:
+#   http://www.sco.com/developers/gabi/latest/contents.html
+# System V Application Binary Interface, Intel386 Architecture Processor Supplement:
+#   http://refspecs.linuxfoundation.org/elf/abi386-4.pdf
+# System V Application Binary Interface, AMD64 Architecture Processor Supplement:
+#    http://refspecs.linux-foundation.org/elf/x86_64-abi-0.98.pdf
+# Linux Standard Base Core Specification, Generic Part:
+#    http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-generic/LSB-Core-generic/tocobjformat.html
+# Linux Standard Base Core Specification for X86-64:
+#    http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-AMD64/LSB-Core-AMD64/tocobjformat.html
 
 # About the naming of functions: this script uses camel case for functions.
 # I wish to quote a friend of mine about that:
