@@ -1928,6 +1928,15 @@ sub walkELFSections {
 			push(@{$elf_data->{'SHT_DYNSYM'}}, $i);
 		}
 	}
+
+	say(0, colored('Parsing SHT_REL/SHT_RELA sections', 'main_action'));
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		my $section = $elf_data->{'sections'}->{$i};
+		if ($section->{'_type'} =~ '^SHT_RELA?$') {
+			announceELFSection($ind, 'Parsing', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
+			walkRela($elf_fh, $elf_data, $i);
+		}
+	}
 }
 
 sub walkELFSection {
