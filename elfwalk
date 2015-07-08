@@ -122,28 +122,54 @@ our $elf_structures = {
 	},
 	# Figure 3. ELF-64 Section Header
 	'section_header' => {
-		'ordered_entries' => [
-			'sh_name',
-			'sh_type',
-			'sh_flags',
-			'sh_addr',
-			'sh_offset',
-			'sh_size',
-			'sh_link',
-			'sh_info',
-			'sh_addralign',
-			'sh_entsize',
-		],
-		'sh_name' => 'Word',
-		'sh_type' => 'Word',
-		'sh_flags' => 'Xword',
-		'sh_addr' => 'Addr',
-		'sh_offset' => 'Off',
-		'sh_size' => 'Xword',
-		'sh_link' => 'Word',
-		'sh_info' => 'Word',
-		'sh_addralign' => 'Xword',
-		'sh_entsize' => 'Xword',
+		ELFCLASS32() => {
+			'ordered_entries' => [
+				'sh_name',
+				'sh_type',
+				'sh_flags',
+				'sh_addr',
+				'sh_offset',
+				'sh_size',
+				'sh_link',
+				'sh_info',
+				'sh_addralign',
+				'sh_entsize',
+			],
+			'sh_name' => 'Word',
+			'sh_type' => 'Word',
+			'sh_flags' => 'Word',
+			'sh_addr' => 'Addr',
+			'sh_offset' => 'Off',
+			'sh_link' => 'Word',
+			'sh_size' => 'Word',
+			'sh_info' => 'Word',
+			'sh_addralign' => 'Word',
+			'sh_entsize' => 'Word',
+		},
+		ELFCLASS64() => {
+			'ordered_entries' => [
+				'sh_name',
+				'sh_type',
+				'sh_flags',
+				'sh_addr',
+				'sh_offset',
+				'sh_size',
+				'sh_link',
+				'sh_info',
+				'sh_addralign',
+				'sh_entsize',
+			],
+			'sh_name' => 'Word',
+			'sh_type' => 'Word',
+			'sh_flags' => 'Xword',
+			'sh_addr' => 'Addr',
+			'sh_offset' => 'Off',
+			'sh_size' => 'Xword',
+			'sh_link' => 'Word',
+			'sh_info' => 'Word',
+			'sh_addralign' => 'Xword',
+			'sh_entsize' => 'Xword',
+		},
 	},
 	'symbol_table' => {
 		ELFCLASS32() => {
@@ -1956,12 +1982,15 @@ sub walkELFSection {
 	);
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
+	my $arch = $elf_data->{'EI_CLASS'};
+	my $sh_info = $elf_structures->{'section_header'}->{$arch};
+
 	my $type, my $value, my $details;
 	my $section = {};
 	# For each entry of a section header...
-	for my $entry (@{$elf_structures->{'section_header'}->{'ordered_entries'}}) {
+	for my $entry (@{$sh_info->{'ordered_entries'}}) {
 		# get its type, ...
-		$type = $elf_structures->{'section_header'}->{$entry};
+		$type = $sh_info->{$entry};
 		# read its value, ...
 		$value = $section->{$entry} = readELFValue($elf_fh, $type);
 		# and provide a first basic explanation.
