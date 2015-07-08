@@ -1925,6 +1925,7 @@ sub walkELFSections {
 		if ($section->{'_type'} eq 'SHT_DYNSYM') {
 			announceELFSection($ind, 'Parsing', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
 			walkSymbolTable($elf_fh, $elf_data, $i);
+			push(@{$elf_data->{'SHT_DYNSYM'}}, $i);
 		}
 	}
 }
@@ -2153,6 +2154,7 @@ sub walkSymbolTable {
 		if ($strtab_offset) {
 			my $name_offset = $strtab_offset + $section->{'_symbols'}->{$i}->{'st_name'};
 			my $name = readStringAtOffset($elf_fh, $name_offset);
+			$section->{'_symbols'}->{$i}->{'_name'} = $name;
 			say($ind + 2, sprintf('Fetched name at offset %s: %s', formatOffset($name_offset), colored($name, 'name')));
 		}
 	}
@@ -2199,6 +2201,18 @@ sub sectionName {
 	return undef if (!defined($name_offset));
 
 	return readStringAtOffset($elf_fh, $name_offset);
+}
+
+sub symbolNameFromIndex {
+	my $elf_data = shift;
+	my $index = shift;
+
+	for my $section_index (@{$elf_data->{'SHT_DYNSYM'}}) {
+		if (exists($elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index}->{'_name'})) {
+			return $elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index}->{'_name'};
+		}
+	}
+	return undef;
 }
 
 sub readStringAtOffset {
