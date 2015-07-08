@@ -40,6 +40,11 @@ use constant {
 	BIG_ENDIAN => 1,
 	ELFCLASS32 => 1,
 	ELFCLASS64 => 2,
+	R_FIELD_NONE => 0,
+	R_FIELD_WORD8 => 8,
+	R_FIELD_WORD16 => 16,
+	R_FIELD_WORD32 => 32,
+	R_FIELD_WORD64 => 64,
 };
 
 # ELF data types
@@ -172,6 +177,46 @@ our $elf_structures = {
 			'st_shndx' => 'Half',
 			'st_value' => 'Addr',
 			'st_size' => 'Xword',
+		},
+	},
+	'rel' => {
+		ELFCLASS32() => {
+			'ordered_entries' => [
+				'r_offset',
+				'r_info',
+			],
+			'r_offset' => 'Addr',
+			'r_info' => 'Word',
+		},
+		ELFCLASS64() => {
+			'ordered_entries' => [
+				'r_offset',
+				'r_info',
+			],
+			'r_offset' => 'Addr',
+			'r_info' => 'Xword',
+		},
+	},
+	'rela' => {
+		ELFCLASS32() => {
+			'ordered_entries' => [
+				'r_offset',
+				'r_info',
+				'r_addend',
+			],
+			'r_offset' => 'Addr',
+			'r_info' => 'Word',
+			'r_addend' => 'Sword',
+		},
+		ELFCLASS64() => {
+			'ordered_entries' => [
+				'r_offset',
+				'r_info',
+				'r_addend',
+			],
+			'r_offset' => 'Addr',
+			'r_info' => 'Xword',
+			'r_addend' => 'Sxword',
 		},
 	},
 };
@@ -1227,6 +1272,123 @@ our $elf = {
 		},
 		'unexplained_value' => 'this is the index of the related section',
 	},
+	'r_offset' => {
+		'single_meaning' => 'location at which to apply the relocation action',
+	},
+	'r_info' => {
+		'single_meaning' => 'symbol index (r_sym) and relocation type (r_type)',
+	},
+	'r_sym' => {
+		'single_meaning' => 'symbol table index with respect to which the relocation must be made',
+	},
+	'r_type' => {
+		'single_meaning' => 'the meaning is processor-specific',
+	},
+	'r_type_EM_386' => {
+		'name' => {
+			0  => 'R_386_NONE',
+			1  => 'R_386_32',
+			2  => 'R_386_PC32',
+			3  => 'R_386_GOT32',
+			4  => 'R_386_PLT32',
+			5  => 'R_386_COPY',
+			6  => 'R_386_GLOB_DAT',
+			7  => 'R_386_JMP_SLOT',
+			8  => 'R_386_RELATIVE',
+			9  => 'R_386_GOTOFF',
+			10 => 'R_386_GOTPC',
+		},
+		'meaning' => {
+			0  => relocationMeaning(R_FIELD_NONE,   'none'),
+			1  => relocationMeaning(R_FIELD_WORD32, 'S + A'),
+			2  => relocationMeaning(R_FIELD_WORD32, 'S + A - P'),
+			3  => relocationMeaning(R_FIELD_WORD32, 'G + A - P',   'computes the distance from the base of the GOT to the symbol\'s GOT entry'),
+			4  => relocationMeaning(R_FIELD_WORD32, 'L + A - P',   'computes the address of the symbol\'s PLT entry'),
+			5  => relocationMeaning(R_FIELD_NONE,   'none',        'relocation type for dynamic linking: its offset refers to a location in a writable segment'),
+			6  => relocationMeaning(R_FIELD_WORD32, 'S',           'used to set a GOT entry to the address of the specified symbol'),
+			7  => relocationMeaning(R_FIELD_WORD32, 'S',           'relocation type for dynamic linking: its offset gives the location of a PLT entry'),
+			8  => relocationMeaning(R_FIELD_WORD32, 'B + A',       'relocation type for dynamic linking: its offset gives a location within a shared object that contains a value representing a relative address'),
+			9  => relocationMeaning(R_FIELD_WORD32, 'S + A - GOT', 'computes the difference between a symbol\'s value and the address of the GOT'),
+			10 => relocationMeaning(R_FIELD_WORD32, 'GOT + A - P', 'resembles R_386_PC32 except it uses the address of teh global offset table in its calculation'),
+		},
+	},
+	'r_type_EM_X86_64' => {
+		'name' => {
+			0  => 'R_X86_64_NONE',
+			1  => 'R_X86_64_64',
+			2  => 'R_X86_64_PC32',
+			3  => 'R_X86_64_GOT32',
+			4  => 'R_X86_64_PLT32',
+			5  => 'R_X86_64_COPY',
+			6  => 'R_X86_64_GLOB_DAT',
+			7  => 'R_X86_64_JUMP_SLOT',
+			8  => 'R_X86_64_RELATIVE',
+			9  => 'R_X86_64_GOTPCREL',
+			10 => 'R_X86_64_32',
+			11 => 'R_X86_64_32S',
+			12 => 'R_X86_64_16',
+			13 => 'R_X86_64_PC16',
+			14 => 'R_X86_64_8',
+			15 => 'R_X86_64_PC8',
+			16 => 'R_X86_64_DPTMOD64',
+			17 => 'R_X86_64_DTPOFF64',
+			18 => 'R_X86_64_TPOFF64',
+			19 => 'R_X86_64_TLSGD',
+			20 => 'R_X86_64_TLSLD',
+			21 => 'R_X86_64_DTPOFF32',
+			22 => 'R_X86_64_GOTTPOFF',
+			23 => 'R_X86_64_TPOFF32',
+			24 => 'R_X86_64_PC64',
+			25 => 'R_X86_64_GOTOFF64',
+			26 => 'R_X86_64_GOTPC32',
+			27 => 'R_X86_64_GOT64',
+			28 => 'R_X86_64_GOTPCREL64',
+			29 => 'R_X86_64_GOTPC64',
+			30 => 'R_X86_64_GOTPLT64',
+			31 => 'R_X86_64_PLTOFF64',
+			32 => 'R_X86_64_SIZE32',
+			33 => 'R_X86_64_SIZE64',
+		},
+		'meaning' => {
+			0  => relocationMeaning(R_FIELD_NONE,   'none'),
+			1  => relocationMeaning(R_FIELD_WORD64, 'S + A'),
+			2  => relocationMeaning(R_FIELD_WORD32, 'S + A - P'),
+			3  => relocationMeaning(R_FIELD_WORD32, 'G + A',           'computes the distance from the base of the GOT to the symbol\'s GOT entry'),
+			4  => relocationMeaning(R_FIELD_WORD32, 'L + A - P',       'computes the address of the symbol\'s PLT entry'),
+			5  => relocationMeaning(R_FIELD_NONE,   'none',            'relocation type for dynamic linking: its offset refers to a location in a writable segment'),
+			6  => relocationMeaning(R_FIELD_WORD64, 'S',               'used to set a GOT entry to the address of the specified symbol'),
+			7  => relocationMeaning(R_FIELD_WORD64, 'S',               'relocation type for dynamic linking: its offset gives the location of a PLT entry'),
+			8  => relocationMeaning(R_FIELD_WORD64, 'B + A',           'relocation type for dynamic linking: its offset gives a location within a shared object that contains a value representing a relative address'),
+			9  => relocationMeaning(R_FIELD_WORD32, 'G + GOT + A - P', 'gives the difference between the location in the GOT where the symbol\'s address is given and the location where the relocation is applied'),
+			10 => relocationMeaning(R_FIELD_WORD32, 'S + A',           'truncates the computed value to 32-bits'),
+			11 => relocationMeaning(R_FIELD_WORD32, 'S + A',           'truncates the computed value to 32-bits'),
+			12 => relocationMeaning(R_FIELD_WORD16, 'S + A',           'this relocation is not conformant to the AMD64 ABI'),
+			13 => relocationMeaning(R_FIELD_WORD16, 'S + A - P',       'this relocation is not conformant to the AMD64 ABI'),
+			14 => relocationMeaning(R_FIELD_WORD8,  'S + A - P',       'this relocation is not conformant to the AMD64 ABI'),
+			15 => relocationMeaning(R_FIELD_WORD8,  'S + A - P',       'this relocation is not conformant to the AMD64 ABI'),
+			16 => relocationMeaning(R_FIELD_WORD64, '',                'part of the Thread-Local Storage ABI extensions'),
+			17 => relocationMeaning(R_FIELD_WORD64, '',                'part of the Thread-Local Storage ABI extensions'),
+			18 => relocationMeaning(R_FIELD_WORD64, '',                'part of the Thread-Local Storage ABI extensions'),
+			19 => relocationMeaning(R_FIELD_WORD32, '',                'part of the Thread-Local Storage ABI extensions'),
+			20 => relocationMeaning(R_FIELD_WORD32, '',                'part of the Thread-Local Storage ABI extensions'),
+			21 => relocationMeaning(R_FIELD_WORD32, '',                'part of the Thread-Local Storage ABI extensions'),
+			22 => relocationMeaning(R_FIELD_WORD32, '',                'part of the Thread-Local Storage ABI extensions'),
+			23 => relocationMeaning(R_FIELD_WORD32, '',                'part of the Thread-Local Storage ABI extensions'),
+			24 => relocationMeaning(R_FIELD_WORD64, 'S + A - P'),
+			25 => relocationMeaning(R_FIELD_WORD64, 'S + A - GOT'),
+			26 => relocationMeaning(R_FIELD_WORD32, 'GOT + A - P'),
+			27 => relocationMeaning(R_FIELD_WORD64, 'G + A',           'large model relocation type'),
+			28 => relocationMeaning(R_FIELD_WORD64, 'G + GOT - P + A', 'large model relocation type'),
+			29 => relocationMeaning(R_FIELD_WORD64, 'GOT - P + A',     'large model relocation type'),
+			30 => relocationMeaning(R_FIELD_WORD64, 'G + A',           'large model relocation type'),
+			31 => relocationMeaning(R_FIELD_WORD64, 'L - GOT + A',     'large model relocation type'),
+			32 => relocationMeaning(R_FIELD_WORD32, 'Z + A'),
+			33 => relocationMeaning(R_FIELD_WORD64, 'Z + A'),
+		},
+	},
+	'r_addend' => {
+		'single_meaning' => 'constant addend used to compute the value to be stored into the relocatable field',
+	},
 };
 
 my $columns = 80;
@@ -2067,4 +2229,36 @@ sub readNullTerminatedString {
 sub isPowerOfTwo {
 	my $value = shift;
 	return $value && !($value & ($value - 1));
+}
+
+# Relocations meanings were written based on the "calculation" column found in
+# SysV ABI AMD64 supplement. This column uses a particular notation to describe
+# relocations. That notation was copied "as is" in $elf.
+# This procedure rewrites this notation to something expected to be more
+# understandable (or at least less cryptic).
+sub relocationMeaning {
+	my $field = shift;
+	my $calculation = shift;
+	my $description = shift;
+
+	$calculation =~ s,none,No relocation,;
+	$calculation =~ s,GOT,GOT address,;
+	$calculation =~ s,A,addend,;
+	$calculation =~ s,B,base address,;
+	$calculation =~ s,G,symbol GOT offset,;
+	$calculation =~ s,L,symbol PLT place,;
+	$calculation =~ s,P,r_offset place,;
+	$calculation =~ s,S,symbol value,;
+	$calculation =~ s,Z,symbol size,;
+
+	my $final_description = '';
+	if ($field > R_FIELD_NONE) {
+		$final_description .= sprintf('for a %d-bit field: ', $field);
+	}
+	$final_description .= $calculation;
+	if (defined($description) && length($description)) {
+		$final_description .= '; ' . $description;
+	}
+
+	return $final_description;
 }
