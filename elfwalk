@@ -245,6 +245,48 @@ our $elf_structures = {
 			'r_addend' => 'Sxword',
 		},
 	},
+	'program_header' => {
+		ELFCLASS32() => {
+			'ordered_entries' => [
+				'p_type',
+				'p_offset',
+				'p_vaddr',
+				'p_paddr',
+				'p_filesz',
+				'p_memsz',
+				'p_flags',
+				'p_align',
+			],
+			'p_type' => 'Word',
+			'p_offset' => 'Off',
+			'p_vaddr' => 'Addr',
+			'p_paddr' => 'Addr',
+			'p_filesz' => 'Word',
+			'p_memsz' => 'Word',
+			'p_flags' => 'Word',
+			'p_align' => 'Word',
+		},
+		ELFCLASS64() => {
+			'ordered_entries' => [
+				'p_type',
+				'p_flags',
+				'p_offset',
+				'p_vaddr',
+				'p_paddr',
+				'p_filesz',
+				'p_memsz',
+				'p_align',
+			],
+			'p_type' => 'Word',
+			'p_flags' => 'Word',
+			'p_offset' => 'Off',
+			'p_vaddr' => 'Addr',
+			'p_paddr' => 'Addr',
+			'p_filesz' => 'Xword',
+			'p_memsz' => 'Xword',
+			'p_align' => 'Xword',
+		},
+	},
 };
 
 our $elf = {
@@ -1414,6 +1456,86 @@ our $elf = {
 	},
 	'r_addend' => {
 		'single_meaning' => 'constant addend used to compute the value to be stored into the relocatable field',
+	},
+	'p_type' => {
+		'name' => {
+			0 => 'PT_NULL',
+			1 => 'PT_LOAD',
+			2 => 'PT_DYNAMIC',
+			3 => 'PT_INTERP',
+			4 => 'PT_NOTE',
+			5 => 'PT_SHLIB',
+			6 => 'PT_PHDR',
+			7 => 'PT_TLS',
+			# Additional segment types defined by the LSB.
+			0x6474e550 => 'PT_GNU_EH_FRAME',
+			0x6474e551 => 'PT_GNU_STACK',
+			0x6474e552 => 'PT_GNU_RELRO',
+		},
+		'meaning' => {
+			0 => 'unused / ignored entry',
+			1 => 'loadable segment, described by p_filesz and p_memsz',
+			2 => 'dynamic linking information',
+			3 => 'location and size of a null-terminated path name to invoke as an interpreter',
+			4 => 'location an size of auxiliary information',
+			5 => 'reserved segment type / unspecified semantics',
+			6 => 'location and size of the program header table itself',
+			7 => 'Thread-Local Storage template',
+			0x6474e550 => 'location and size of the exception handling information as defined by the .eh_frame_hdr section',
+			0x6474e551 => 'specifies, through p_flags, whether the stack should be executable (default is yes)',
+			0x6474e552 => 'location and size of a segment which may be made read-only after relocations have been applied',
+		},
+		'ranges' => {
+			'OS' => {
+				'meaning' => 'operating system-specific semantics',
+				'low_value' => 0x60000000,
+				'low_name' => 'PT_LOOS',
+				'high_value' => 0X6FFFFFFF,
+				'high_name' => 'PT_HIOS',
+			},
+			'PROC' => {
+				'meaning' => 'processor-specific semantics',
+				'low_value' => 0x70000000,
+				'low_name' => 'PT_LOPROC',
+				'high_value' => 0X7FFFFFFF,
+				'high_name' => 'PT_HIPROC',
+			},
+		},
+	},
+	'p_flags' => {
+		'is_flag' => 1,
+		'name' => {
+			1 => 'PF_X',
+			2 => 'PF_W',
+			4 => 'PF_R',
+			0X0FF00000 => 'PF_MASKOS',
+			0xf0000000 => 'PF_MASKPROC',
+		},
+		'meaning' => {
+			1 => 'execute',
+			2 => 'write',
+			4 => 'read',
+			0X0FF00000 => 'system-specific semantics',
+			0xf0000000 => 'processor-specific semantics',
+		},
+	},
+	'p_offset' => {
+		'single_meaning' => 'offset from the beginning of the file at which the first byte of the segment resides',
+	},
+	'p_vaddr' => {
+		'single_meaning' => 'virtual address at which the first byte of the segment resides in memory',
+	},
+	'p_paddr' => {
+		'single_meaning' => 'segment\'s physical address, if relevant',
+	},
+	'p_filesz' => {
+		'single_meaning' => 'number of bytes in the file image of the segment',
+	},
+	'p_memsz' => {
+		'single_meaning' => 'number of bytes in the memory image of the segment',
+	},
+	'p_align' => {
+		'single_meaning' => 'value to which the segments are aligned in memory and in the file',
 	},
 };
 
