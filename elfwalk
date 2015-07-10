@@ -1610,6 +1610,13 @@ sub say {
 	}
 }
 
+sub sayf {
+	my $indent = shift;
+	my $string = shift;
+	my @args = @_;
+	say($indent, sprintf($string, @args));
+}
+
 sub exitWithMessage {
 	my $rc = $_[0];
 	my $message = $_[1];
