@@ -1765,6 +1765,7 @@ sub walkELF {
 	walkELFHeaderIdent($elf_fh, $elf_data);
 	walkELFHeaderFields($elf_fh, $elf_data);
 	walkELFSections($elf_fh, $elf_data);
+	walkELFProgramHeader($elf_fh, $elf_data);
 }
 
 sub analyseMachineSpecificValue {
@@ -2368,6 +2369,68 @@ sub walkRela {
 				my $r_type = ($arch == ELFCLASS32 ? ($value & 0xFF) : ($value & 0xFFFFFFFF));
 				$section->{'_relocations'}->{$i}->{'r_type'} = $r_sym;
 				say($ind + 3, analyseAndExplainValue($r_type, 'r_type', $rela_info->{$entry}, undef, $elf_data->{'e_machine'}));
+			}
+		}
+	}
+}
+
+sub walkELFProgramHeader {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+
+	say(0, colored('Parsing program header', 'main_action'));
+	my $ind = 1;
+
+	my $arch = $elf_data->{'EI_CLASS'};
+	my $ph_info = $elf_structures->{'program_header'}->{$arch};
+
+	for (my $i = 0; $i < $elf_data->{'e_phnum'}; ++ $i) {
+		say($ind, colored('Parsing segment #', 'underline') . colored($i, 'index underline') . colored(':', 'underline'));
+
+		my $offset = $elf_data->{'e_phoff'} + ($i * $elf_data->{'e_phentsize'});
+		say(
+			$ind + 1,
+			sprintf(
+				'Seeking to offset e_phoff + (%s x e_phentsize) = %s',
+				colored($i, 'index'),
+				formatOffset($offset)
+			)
+		);
+		seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+		for my $entry (@{$ph_info->{'ordered_entries'}}) {
+			my $value = readELFValue($elf_fh, $ph_info->{$entry});
+			$elf_data->{'program_header'}->{$i}->{$entry} = $value;
+			say($ind + 1, analyseAndExplainValue($value, $entry, $ph_info->{$entry}));
+
+			if ($entry eq 'p_align') {
+				my $comment;
+				if ($value == 0 || $value == 1) {
+					# Values 0 and 1 mean no alignment is required.
+					say($ind + 2, sprintf('Here, %s means no alignment is required.', colored($value, 'value')));
+				}
+				else {
+					# Otherwise, p_align should be a positive, integral power
+					# of 2,
+					$comment = 'Here, ' . colored($value, 'value') . ' ';
+					$comment .= isPowerOfTwo($value) ? 'is' : 'should be';
+					$comment .= ' a power of two, as expected by the SysV ABI.';
+					say($ind + 2, $comment);
+
+					# ... and p_vaddr should equal p_offset, modulo p_align.
+					my $p_vaddr  = $elf_data->{'program_header'}->{$i}->{'p_vaddr'};
+					my $p_offset = $elf_data->{'program_header'}->{$i}->{'p_offset'};
+					my $is_aligned = (($p_vaddr - $p_offset) % $value);
+					$comment = $is_aligned ? 'should equal' : 'equals';
+					$comment = sprintf(
+						'Also, %s %s %s, modulo %s, as expected by the SysV ABI.',
+						colored('p_vaddr', 'value_name'),
+						$comment,
+						colored('p_offset', 'value_name'),
+						colored('p_align', 'value_name')
+					);
+					say($ind + 2, $comment);
+				}
 			}
 		}
 	}
