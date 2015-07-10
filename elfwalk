@@ -1998,7 +1998,7 @@ sub walkELFHeaderIdent {
 	}
 
 	my $ei_nident = $elf->{'e_ident'}->{'_constants'}->{'EI_NIDENT'};
-	say($ind, sprintf('Seeking to offset EI_NIDENT (%d)', $ei_nident));
+	sayf($ind, 'Seeking to offset EI_NIDENT (%d)', $ei_nident);
 	seek($elf_fh, $ei_nident, Fcntl::SEEK_SET);
 }
 
@@ -2018,12 +2018,12 @@ sub walkELFHeaderFields {
 		}
 		elsif ($entry eq 'e_phnum') {
 			my $e_phentsize = $elf_data->{'e_phentsize'};
-			say($ind + 1, sprintf('conclusion: the program header table is %d x %d = %d bytes', $e_phentsize, $value, $e_phentsize * $value));
+			sayf($ind + 1, 'conclusion: the program header table is %d x %d = %d bytes', $e_phentsize, $value, $e_phentsize * $value);
 		}
 		elsif ($entry eq 'e_shnum') {
 			my $e_shentsize = $elf_data->{'e_shentsize'};
-			say($ind + 1, sprintf('conclusion: sections are indexed from 0 (this index is reserved though) to %d.', $value - 1));
-			say($ind + 1, sprintf('conclusion: the section header table is %d x %d = %d bytes', $e_shentsize, $value, $e_shentsize * $value));
+			sayf($ind + 1, 'conclusion: sections are indexed from 0 (this index is reserved though) to %d.', $value - 1);
+			sayf($ind + 1, 'conclusion: the section header table is %d x %d = %d bytes', $e_shentsize, $value, $e_shentsize * $value);
 		}
 	}
 }
@@ -2061,10 +2061,11 @@ sub walkELFSections {
 	# Display a summary of sections.
 	say(0, colored('Summary of sections', 'main_action'));
 	my $table_format = '%3s %-30s %-20s %-30s %-30s';
-	say(1, sprintf($table_format, '#', 'Name', 'Type', 'Flags', 'Use'));
+	sayf(1, $table_format, '#', 'Name', 'Type', 'Flags', 'Use');
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		my $section = $elf_data->{'sections'}->{$i};
-		my $table_line = sprintf(
+		sayf(
+			1,
 			$table_format,
 			$i,
 			colored($section->{'_name'}, 'name'),
@@ -2072,7 +2073,6 @@ sub walkELFSections {
 			formatFlags(values(%{$section->{'_flags'}})),
 			analyseSectionName($section->{'_name'})->{'short'}
 		);
-		say(1, $table_line);
 	}
 
 	say(0, colored('Parsing SHT_DYNSYM sections (and associated SHT_STRTAB sections)', 'main_action'));
@@ -2102,13 +2102,11 @@ sub walkELFSection {
 
 	my $ind = 2;
 	my $offset = sectionOffset($elf_data, $section_index);
-	say(
+	sayf(
 		$ind,
-		sprintf(
-			"Seeking to offset shoff + (%s x shentsize) = %s.",
-			colored($section_index, 'index'),
-			formatOffset($offset)
-		)
+		"Seeking to offset shoff + (%s x shentsize) = %s.",
+		colored($section_index, 'index'),
+		formatOffset($offset)
 	);
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
@@ -2229,18 +2227,16 @@ sub walkSymbolTable {
 	my $strtab_offset = 0;
 	my $strtab = $elf_data->{'sections'}->{$section_index}->{'sh_link'};
 	if ($strtab) {
-		say(
+		sayf(
 			$ind,
-			sprintf(
-				'This section is associated with section #%s: %s, of type %s.',
-				colored($strtab, 'index'),
-				colored($elf_data->{'sections'}->{$strtab}->{'_name'}, 'name'),
-				colored($elf_data->{'sections'}->{$strtab}->{'_type'}, 'name')
-			),
+			'This section is associated with section #%s: %s, of type %s.',
+			colored($strtab, 'index'),
+			colored($elf_data->{'sections'}->{$strtab}->{'_name'}, 'name'),
+			colored($elf_data->{'sections'}->{$strtab}->{'_type'}, 'name')
 		);
 		if ($elf_data->{'sections'}->{$strtab}->{'_type'} eq 'SHT_STRTAB') {
 			$strtab_offset = $elf_data->{'sections'}->{$strtab}->{'sh_offset'};
-			say($ind + 1, sprintf('Symbol names will be read from it, i.e. from offset %s.', formatOffset($strtab_offset)));
+			sayf($ind + 1, 'Symbol names will be read from it, i.e. from offset %s.', formatOffset($strtab_offset));
 		}
 		else {
 			say($ind + 1, 'Symbol names will not be read from there though, as its type is not SHT_STRTAB.');
@@ -2252,7 +2248,7 @@ sub walkSymbolTable {
 
 	# Iterate over symbol table entries.
 	for (my $i = 0; $i < $count; ++ $i) {
-		say($ind, sprintf('[%d/%d] Symbol at index #%s:', $i + 1, $count, $i));
+		sayf($ind, '[%d/%d] Symbol at index #%s:', $i + 1, $count, $i);
 
 		if (!$i) {
 			say($ind + 1, 'Skipping as the symbol table entry for index 0 (STN_UNDEF) is reserved');
@@ -2260,7 +2256,7 @@ sub walkSymbolTable {
 		}
 
 		my $offset = $section->{'sh_offset'} + ($i * $section->{'sh_entsize'});
-		say($ind + 1, sprintf('Seeking to offset sh_offset + (%s x sh_entsize) = %s', colored($i, 'index'), formatOffset($offset)));
+		sayf($ind + 1, 'Seeking to offset sh_offset + (%s x sh_entsize) = %s', colored($i, 'index'), formatOffset($offset));
 		seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 		# For each field of the current entry...
@@ -2278,13 +2274,11 @@ sub walkSymbolTable {
 				say($ind + 3, analyseAndExplainValue($st_type, 'st_type', $st_info->{$entry}));
 			}
 			elsif ($entry eq 'st_shndx') {
-				say(
+				sayf(
 					$ind + 3,
-					sprintf(
-						'Here, %s is the index of section %s.',
-						colored($value, 'value'),
-						colored($elf_data->{'sections'}->{$value}->{'_name'}, 'name')
-					)
+					'Here, %s is the index of section %s.',
+					colored($value, 'value'),
+					colored($elf_data->{'sections'}->{$value}->{'_name'}, 'name')
 				) unless (exists($elf->{'st_shndx'}->{'name'}->{$value}));
 			}
 			elsif ($entry eq 'st_value' && $value) {
@@ -2307,14 +2301,12 @@ sub walkSymbolTable {
 						}
 					}
 
-					say(
+					sayf(
 						$ind + 3,
-						sprintf(
-							'Here, since %s, %s holds %s.',
-							$extra_explanation1,
-							colored('st_value', 'value_name'),
-							$extra_explanation2
-						)
+						'Here, since %s, %s holds %s.',
+						$extra_explanation1,
+						colored('st_value', 'value_name'),
+						$extra_explanation2
 					);
 				}
 			}
@@ -2323,7 +2315,7 @@ sub walkSymbolTable {
 			my $name_offset = $strtab_offset + $section->{'_symbols'}->{$i}->{'st_name'};
 			my $name = readStringAtOffset($elf_fh, $name_offset);
 			$section->{'_symbols'}->{$i}->{'_name'} = $name;
-			say($ind + 2, sprintf('Fetched name at offset %s: %s', formatOffset($name_offset), colored($name, 'name')));
+			sayf($ind + 2, 'Fetched name at offset %s: %s', formatOffset($name_offset), colored($name, 'name'));
 		}
 	}
 }
@@ -2347,10 +2339,10 @@ sub walkRela {
 
 	# Iterate over relocation entries.
 	for (my $i = 0; $i < $count; ++ $i) {
-		say($ind, sprintf('[%d/%d] Relocation at index #%s:', $i + 1, $count, $i));
+		sayf($ind, '[%d/%d] Relocation at index #%s:', $i + 1, $count, $i);
 
 		my $offset = $section->{'sh_offset'} + ($i * $section->{'sh_entsize'});
-		say($ind + 1, sprintf('Seeking to offset sh_offset + (%s x sh_entsize) = %s', colored($i, 'index'), formatOffset($offset)));
+		sayf($ind + 1, 'Seeking to offset sh_offset + (%s x sh_entsize) = %s', colored($i, 'index'), formatOffset($offset));
 		seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 		# For each field of the current entry...
@@ -2370,7 +2362,7 @@ sub walkRela {
 				# Get the name of the associated symbol.
 				my $symbol_name = symbolNameFromIndex($elf_data, $r_sym);
 				$section->{'_relocations'}->{$i}->{'_symbol'} = $symbol_name;
-				say($ind + 4, sprintf('Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name')));
+				sayf($ind + 4, 'Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name'));
 
 				# Extract r_type from r_info.
 				my $r_type = ($arch == ELFCLASS32 ? ($value & 0xFF) : ($value & 0xFFFFFFFF));
@@ -2395,13 +2387,11 @@ sub walkELFProgramHeader {
 		say($ind, colored('Parsing segment #', 'underline') . colored($i, 'index underline') . colored(':', 'underline'));
 
 		my $offset = $elf_data->{'e_phoff'} + ($i * $elf_data->{'e_phentsize'});
-		say(
+		sayf(
 			$ind + 1,
-			sprintf(
-				'Seeking to offset e_phoff + (%s x e_phentsize) = %s',
-				colored($i, 'index'),
-				formatOffset($offset)
-			)
+			'Seeking to offset e_phoff + (%s x e_phentsize) = %s',
+			colored($i, 'index'),
+			formatOffset($offset)
 		);
 		seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
@@ -2414,7 +2404,7 @@ sub walkELFProgramHeader {
 				my $comment;
 				if ($value == 0 || $value == 1) {
 					# Values 0 and 1 mean no alignment is required.
-					say($ind + 2, sprintf('Here, %s means no alignment is required.', colored($value, 'value')));
+					sayf($ind + 2, 'Here, %s means no alignment is required.', colored($value, 'value'));
 				}
 				else {
 					# Otherwise, p_align should be a positive, integral power
@@ -2429,14 +2419,14 @@ sub walkELFProgramHeader {
 					my $p_offset = $elf_data->{'program_header'}->{$i}->{'p_offset'};
 					my $is_aligned = (($p_vaddr - $p_offset) % $value);
 					$comment = $is_aligned ? 'should equal' : 'equals';
-					$comment = sprintf(
+					sayf(
+						$ind + 2,
 						'Also, %s %s %s, modulo %s, as expected by the SysV ABI.',
 						colored('p_vaddr', 'value_name'),
 						$comment,
 						colored('p_offset', 'value_name'),
 						colored('p_align', 'value_name')
 					);
-					say($ind + 2, $comment);
 				}
 			}
 		}
