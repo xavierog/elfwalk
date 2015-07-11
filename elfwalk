@@ -1518,6 +1518,13 @@ our $elf = {
 			0X0FF00000 => 'system-specific semantics',
 			0xf0000000 => 'processor-specific semantics',
 		},
+		'_allowable' => {
+			1 => 'read permission',
+			2 => 'read and execute permissions',
+			3 => 'read permission',
+			4 => 'execute permission',
+			6 => 'execute permission',
+		},
 	},
 	'p_offset' => {
 		'single_meaning' => 'offset from the beginning of the file at which the first byte of the segment resides',
