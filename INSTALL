@@ -1,0 +1,5 @@
+== Debian ==
+elfwalk requires the following dependencies:
+  - perl-base (for /usr/bin/perl itself)
+  - perl (for Data::Dumper)
+  - perl-modules (for Term::ANSIColor)
