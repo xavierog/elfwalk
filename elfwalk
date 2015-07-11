@@ -2447,8 +2447,51 @@ sub walkELFProgramHeader {
 					$allowable->{$perm_flags}
 				) if (exists($allowable->{$perm_flags}));
 			}
+			elsif ($entry eq 'p_filesz') {
+				my $segment = $elf_data->{'program_header'}->{$i};
+				if (getSectionsInSegment($elf_data, $i)) {
+					say($ind + 2, 'This segment covers the following sections:');
+					for my $i (@{$segment->{'_sections'}}) {
+						my $section_name = $elf_data->{'sections'}->{$i}->{'_name'};
+						sayf(
+							$ind + 3,
+							'- section #%s: %s',
+							colored($i, 'index'),
+							colored($section_name, 'name')
+						);
+					}
+				}
+			}
 		}
 	}
+}
+
+sub getSectionsInSegment {
+	my $elf_data = shift;
+	my $segment_index = shift;
+
+	my $segment = $elf_data->{'program_header'}->{$segment_index};
+	$segment->{'_sections'} = [];
+
+	# Iterate over known sections...
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		my $section = $elf_data->{'sections'}->{$i};
+		# to check whether they are included in the current segment.
+		if (segmentIncludesSection($segment, $section)) {
+			push(@{$segment->{'_sections'}}, $i);
+		}
+	}
+	return scalar(@{$segment->{'_sections'}});
+}
+
+sub sectionEnd {
+	my $section = shift;
+
+	my $section_end = $section->{'sh_offset'};
+	if ($section->{'_type'} ne 'SHT_NOBITS') {
+		$section_end += $section->{'sh_size'};
+	}
+	return $section_end;
 }
 
 sub sectionOffset {
@@ -2492,6 +2535,23 @@ sub sectionName {
 	return undef if (!defined($name_offset));
 
 	return readStringAtOffset($elf_fh, $name_offset);
+}
+
+sub segmentIncludesSection {
+	my $segment = shift;
+	my $section = shift;
+
+	my $section_start = $section->{'sh_offset'};
+	my $section_end = sectionEnd($section);
+
+	my $segment_start = $segment->{'p_offset'};
+	my $segment_end = $segment_start + $segment->{'p_filesz'};
+
+	my $segment_includes_section = (
+		$segment_start <= $section_start &&
+		$section_end <= $segment_end
+	);
+	return $segment_includes_section;
 }
 
 sub symbolNameFromIndex {
