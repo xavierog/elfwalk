@@ -2436,6 +2436,17 @@ sub walkELFProgramHeader {
 					);
 				}
 			}
+			elsif ($entry eq 'p_flags') {
+				# Focus on the lowest 3 bits.
+				my $perm_flags = ($value & 0x7);
+				# This hash associates perm sets with extra, allowable perms.
+				my $allowable = $elf->{'p_flags'}->{'_allowable'};
+				sayf(
+					$ind + 2,
+					'ABI-conforming systems may also provide %s.',
+					$allowable->{$perm_flags}
+				) if (exists($allowable->{$perm_flags}));
+			}
 		}
 	}
 }
