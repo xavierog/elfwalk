@@ -1617,6 +1617,16 @@ sub sayf {
 	say($indent, sprintf($string, @args));
 }
 
+sub announceOperation {
+	my ($ind, $prefix, $index, $suffix) = @_;
+	say(
+		$ind,
+		colored($prefix . ' #', 'underline') .
+		colored($index, 'index underline') .
+		colored($suffix, 'underline')
+	);
+}
+
 sub exitWithMessage {
 	my $rc = $_[0];
 	my $message = $_[1];
@@ -2028,16 +2038,6 @@ sub walkELFHeaderFields {
 	}
 }
 
-sub announceELFSection {
-	my ($ind, $prefix, $index, $suffix) = @_;
-	say(
-		$ind,
-		colored($prefix . ' section #', 'underline') .
-		colored($index, 'index underline') .
-		colored($suffix, 'underline')
-	);
-}
-
 sub walkELFSections {
 	my $elf_fh = shift;
 	my $elf_data = shift;
@@ -2046,15 +2046,15 @@ sub walkELFSections {
 	$elf_data->{'sections'} = {};
 	my $ind = 1;
 
-	announceELFSection($ind, 'Parsing', $elf_data->{'e_shstrndx'}, ' first as it holds section names:');
+	announceOperation($ind, 'Parsing section', $elf_data->{'e_shstrndx'}, ' first as it holds section names:');
 	walkELFSection($elf_fh, $elf_data, $elf_data->{'e_shstrndx'});
 
-	announceELFSection($ind, 'Not parsing', 0, ' as it is reserved.');
+	announceOperation($ind, 'Not parsing section', 0, ' as it is reserved.');
 	say($ind + 1, "It must contain only zeroes.");
 
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		next if ($i == $elf_data->{'e_shstrndx'});
-		announceELFSection($ind, 'Parsing', $i, ':');
+		announceOperation($ind, 'Parsing section', $i, ':');
 		walkELFSection($elf_fh, $elf_data, $i);
 	}
 
@@ -2079,7 +2079,7 @@ sub walkELFSections {
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		my $section = $elf_data->{'sections'}->{$i};
 		if ($section->{'_type'} eq 'SHT_DYNSYM') {
-			announceELFSection($ind, 'Parsing', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
+			announceOperation($ind, 'Parsing section', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
 			walkSymbolTable($elf_fh, $elf_data, $i);
 			push(@{$elf_data->{'SHT_DYNSYM'}}, $i);
 		}
@@ -2089,7 +2089,7 @@ sub walkELFSections {
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		my $section = $elf_data->{'sections'}->{$i};
 		if ($section->{'_type'} =~ '^SHT_RELA?$') {
-			announceELFSection($ind, 'Parsing', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
+			announceOperation($ind, 'Parsing section', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
 			walkRela($elf_fh, $elf_data, $i);
 		}
 	}
@@ -2384,7 +2384,7 @@ sub walkELFProgramHeader {
 	my $ph_info = $elf_structures->{'program_header'}->{$arch};
 
 	for (my $i = 0; $i < $elf_data->{'e_phnum'}; ++ $i) {
-		say($ind, colored('Parsing segment #', 'underline') . colored($i, 'index underline') . colored(':', 'underline'));
+		announceOperation($ind, 'Parsing segment', $i, ':');
 
 		my $offset = $elf_data->{'e_phoff'} + ($i * $elf_data->{'e_phentsize'});
 		sayf(
