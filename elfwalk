@@ -2413,6 +2413,80 @@ sub walkRela {
 	}
 }
 
+sub walkNote {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 1;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	# What kind of entries do we intend to read?
+	my $arch = $elf_data->{'EI_CLASS'};
+	my $note_info = $elf_structures->{'note'}->{$arch};
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	# Read expected fields: namesz, descsz, type.
+	for my $entry (@{$note_info->{'ordered_entries'}}) {
+		my $value = readELFValue($elf_fh, $note_info->{$entry});
+		$elf_data->{'_notes'}->{$section_index}->{$entry} = $value;
+		say($ind + 2, analyseAndExplainValue($value, $entry, $note_info->{$entry}));
+	}
+
+	# Read the name.
+	my $name_size = $elf_data->{'_notes'}->{$section_index}->{'namesz'};
+	if ($name_size) {
+		my $name = readNullTerminatedString($elf_fh, $name_size);
+		sayf($ind + 2, '%s is "%s".', colored('name', 'value_name'), colored($name, 'value'));
+	}
+	else {
+		sayf($ind + 2, '%s will not be read as %s is 0.', colored('name', 'value_name'), colored('namesz', 'value_name'));
+	}
+
+	# Cross potential padding: "Padding is present, if necessary, to ensure
+	# 4-byte alignment for the descriptor. Such padding is not included in
+	# namesz."
+	my $cur_pos = my $new_pos = tell($elf_fh);
+	++ $new_pos while ($new_pos % 4);
+	if ($new_pos != $cur_pos) {
+		sayf($ind + 2, 'Seeking to offset %s to cross the padding', formatOffset($new_pos));
+		seek($elf_fh, $new_pos, Fcntl::SEEK_SET);
+	}
+
+	# Read the descriptor.
+	if ($section->{'_name'} eq '.note.ABI-tag') {
+		sayf($ind + 2, 'The note section being named %s, we know how to interpret the descriptor:', colored('.note.ABI-tag', 'name'));
+		my $value = readELFValue($elf_fh, 'Word');
+		sayf($ind + 3, '%s: this is expected to be 0, signifying a Linux executable.', colored(formatValue($value, 'Word'), 'value'));
+		my $kv1 = readELFValue($elf_fh, 'Word');
+		sayf($ind + 3, '%s: this is the earliest kernel version compatible with this file', colored(formatValue($kv1, 'Word'), 'value'));
+		my $kv2 = readELFValue($elf_fh, 'Word');
+		sayf($ind + 3, '%s: this is the earliest kernel major revision compatible with this file', colored(formatValue($kv2, 'Word'), 'value'));
+		my $kv3 = readELFValue($elf_fh, 'Word');
+		sayf($ind + 3, '%s: this is the earliest kernel minor revision compatible with this file', colored(formatValue($kv3, 'Word'), 'value'));
+		$elf_data->{'_kernel'} = sprintf('%d.%d.%d', $kv1, $kv2, $kv3);
+		sayf($ind + 2, 'Basically, this note states this file requires at least Linux kernel %s.', colored($elf_data->{'_kernel'}, 'value'));
+	}
+	elsif ($section->{'_name'} eq '.note.gnu.build-id') {
+		my $desc_size = $elf_data->{'_notes'}->{$section_index}->{'descsz'};
+		sayf($ind + 2, 'The note section being named %s, we know how to interpret the descriptor:', colored('.note.gnu.build-id', 'name'));
+		sayf($ind + 3, 'This descriptor is expected to host a unique build ID, for debugging purposes.');
+		# I took the same heuristic as "file", with a minimal amount of shame.
+		my $id_type = ($desc_size == 16) ? 'a MD5 hash or a UUID' : 'a SHA1 hash';
+		sayf($ind + 3, 'This descriptor being %d bytes, it is very likely to host %s.', $desc_size, $id_type);
+		my $build_id = '';
+		for (my $i = 0; $i < $desc_size; ++ $i) {
+			my $byte = readELFValue($elf_fh, 'char');
+			$build_id .=  sprintf('%02x', $byte);
+		}
+		sayf($ind + 3, 'The build ID of this file is: %s.', colored($build_id, 'value'));
+	}
+}
+
 sub walkELFProgramHeader {
 	my $elf_fh = shift;
 	my $elf_data = shift;
