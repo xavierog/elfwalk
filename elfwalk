@@ -245,6 +245,30 @@ our $elf_structures = {
 			'r_addend' => 'Sxword',
 		},
 	},
+	'note' => {
+		ELFCLASS32() => {
+			'ordered_entries' => [
+				'namesz',
+				'descsz',
+				'type'
+			],
+			'namesz' => 'Word',
+			'descsz' => 'Word',
+			'type' => 'Word',
+		},
+		ELFCLASS64() => {
+			'ordered_entries' => [
+				'namesz',
+				'descsz',
+				'type'
+			],
+			# The SysV ABI states those should be Xword but it appears reality
+			# chose a different path.
+			'namesz' => 'Word',
+			'descsz' => 'Word',
+			'type' => 'Word',
+		},
+	},
 	'program_header' => {
 		ELFCLASS32() => {
 			'ordered_entries' => [
@@ -1339,6 +1363,15 @@ our $elf = {
 			0xFFFF => 'an escape value which indicates that the symbol refers to a specific location within a section, but that the section header index for that section is too large to be represented directly in the symbol table entry.',
 		},
 		'unexplained_value' => 'this is the index of the related section',
+	},
+	'namesz' => {
+		'single_meaning' => 'size, in bytes, of the note name, i.e. a null-terminated character representation of the entry\'s owner or originator',
+	},
+	'descsz' => {
+		'single_meaning' => 'size, in bytes, of the note descriptor (excluding the padding required to align the next note, if any)',
+	},
+	'type' => {
+		'single_meaning' => 'interpretation of the descriptor -- not specified by the SysV ABI',
 	},
 	'r_offset' => {
 		'single_meaning' => 'location at which to apply the relocation action',
