@@ -2579,6 +2579,7 @@ sub readStringAtOffset {
 
 sub readNullTerminatedString {
 	my $elf_fh = shift;
+	my $max = shift;
 
 	# Read data into a string until we stumble upon EOF or 0x00.
 	my $name;
@@ -2587,6 +2588,7 @@ sub readNullTerminatedString {
 		$read_bytes = read($elf_fh, my $char, 1);
 		last if ($read_bytes != 1 || $char eq "\x0");
 		$name .= $char;
+		last if (defined($max) && length($name) >= $max);
 	}
 	return $name;
 }
