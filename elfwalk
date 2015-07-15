@@ -2496,6 +2496,31 @@ sub walkNote {
 	}
 }
 
+sub walkProgBits {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 1;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	if ($section->{'_name'} eq '.interp') {
+		my $interp = readNullTerminatedString($elf_fh, $section->{'sh_size'});
+		if (length($interp)) {
+			$elf_data->{'.interp'} = $interp;
+			sayf($ind + 1, 'This ELF file shall be interpreted using %s.', colored($interp, 'value'));
+		}
+		else {
+			sayf($ind + 1, 'Error: unable to retrieve the path of the interpreter.');
+		}
+	}
+}
+
 sub walkELFProgramHeader {
 	my $elf_fh = shift;
 	my $elf_data = shift;
