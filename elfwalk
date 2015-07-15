@@ -2142,6 +2142,17 @@ sub walkELFSections {
 			walkNote($elf_fh, $elf_data, $i);
 		}
 	}
+
+	say(0, colored('Parsing known SHT_PROGBITS sections', 'main_action'));
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		my $section = $elf_data->{'sections'}->{$i};
+		if ($section->{'_type'} eq 'SHT_PROGBITS') {
+			if ($section->{'_name'} =~ m/^\.interp/) {
+				announceOperation($ind, 'Parsing section', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
+				walkProgBits($elf_fh, $elf_data, $i);
+			}
+		}
+	}
 }
 
 sub walkELFSection {
