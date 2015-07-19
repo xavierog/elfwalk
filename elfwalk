@@ -2718,6 +2718,31 @@ sub symbolNameFromIndex {
 	return undef;
 }
 
+sub readStringFromSection {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $rel_offset = shift;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	my $abs_offset = $section->{'sh_offset'} + $rel_offset;
+
+	# Compute a sensible maximum expected length.
+	my $max = $section->{'sh_size'} - $rel_offset;
+	# It does not make sense if we are asked to fetch data in a section at an
+	# offset beyond the size of this section.
+	return undef if ($max < 0);
+
+	my $string = readStringAtOffset($elf_fh, $abs_offset, $max, 1);
+	return {
+		'string' => $string,
+		'rel_offset' => $rel_offset,
+		'abs_offset' => $abs_offset,
+	};
+}
+
 sub readStringAtOffset {
 	my $elf_fh = shift;
 	my $offset = shift;
