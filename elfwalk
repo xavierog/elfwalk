@@ -2721,12 +2721,13 @@ sub symbolNameFromIndex {
 sub readStringAtOffset {
 	my $elf_fh = shift;
 	my $offset = shift;
+	my $max = shift;
 
 	# Seek to that offset.
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 	# Read data into a string until we stumble upon EOF or 0x00.
-	return readNullTerminatedString($elf_fh);
+	return readNullTerminatedString($elf_fh, $max);
 }
 
 sub readNullTerminatedString {
