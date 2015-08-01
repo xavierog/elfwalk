@@ -2669,6 +2669,90 @@ sub walkRela {
 	}
 }
 
+sub walkDynamic {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 1;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	# What kind of entries do we intend to read?
+	my $arch = $elf_data->{'EI_CLASS'};
+	my $dyn_info = $elf_structures->{'dynamic'}->{$arch};
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	my $dyn_section = $elf_data->{'_dynamic'}->{$section_index} = {};
+	# Read expected fields: namesz, descsz, type.
+	my $i = 0;
+	dynamic_array: while (1) {
+		dynamic_entry: for my $entry (@{$dyn_info->{'ordered_entries'}}) {
+			my $value = readELFValue($elf_fh, $dyn_info->{$entry});
+			$dyn_section->{$i}->{$entry} = $value;
+			say($ind + 2, analyseAndExplainValue($value, $entry, $dyn_info->{$entry}));
+
+			if ($entry eq 'd_un') {
+				my $tag_value = $dyn_section->{$i}->{'d_tag'};
+				if (!$tag_value) { # DT_NULL
+					# An entry with a DT_NULL tag marks the end of the _DYNAMIC array.
+					last dynamic_array;
+				}
+				elsif ($tag_value == 1) { # DT_NEEDED
+					# "The offset is an index into the table recorded in the DT_STRTAB code."
+					# ... except we are liable to read a DT_NEEDED entry before
+					# stumbling upon the DT_STRTAB one.
+					# We can assume DT_STRTAB actually points to a SHT_STRTAB
+					# section, typically .dynstr
+					for my $section_index (keys(%{$elf_data->{'sections'}})) {
+						my $section = $elf_data->{'sections'}->{$section_index};
+						if ($section->{'_name'} eq '.dynstr') {
+							my $name = readStringFromSection($elf_fh, $elf_data, $section_index, $value);
+							if (defined($name) && length($name->{'string'})) {
+								sayf(
+									$ind + 3,
+									'Fetched name at offset %s: %s',
+									formatOffset($name->{'abs_offset'}),
+									colored($name->{'string'}, 'name')
+								);
+							}
+							else {
+								say($ind + 3, colored('Error: unable to retrieve the name.', 'error'));
+							}
+							last;
+						}
+					}
+				}
+				elsif ($tag_value == 20) { # DT_PLTREL
+					my $meaning;
+					if ($value == 17) { # DT_REL
+						$meaning = 'means DT_REL';
+					}
+					elsif ($value == 7) { # DT_RELA
+						$meaning = 'means DT_RELA';
+					}
+					else {
+						$meaning = 'should be either DT_REL or DT_RELA.'
+					}
+					$value = sprintf('%d', $value);
+					$value = colored($value, 'value');
+					sayf($ind + 3, 'Here, %s %s.', $value, $meaning);
+				}
+				elsif ($tag_value == 30) { # DT_FLAGS
+					say($ind + 3, analyseAndExplainValue($value, 'dt_flags', $dyn_info->{'d_un'}));
+				}
+				elsif ($tag_value == 0x6FFFFFFB) { # DT_FLAGS_1
+					say($ind + 3, analyseAndExplainValue($value, 'dt_flags_1', $dyn_info->{'d_un'}));
+				}
+			}
+		}
+		++ $i;
+	}
+}
+
 sub walkNote {
 	my $elf_fh = shift;
 	my $elf_data = shift;
