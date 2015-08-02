@@ -2562,7 +2562,18 @@ sub walkSymbolTable {
 			# and provide a first basic explanation.
 			say($ind + 2, analyseAndExplainValue($value, $entry, $st_info->{$entry}));
 
-			if ($entry eq 'st_info') {
+			if ($entry eq 'st_name') {
+				if (!$value) {
+					sayf($ind + 3, 'This symbol table entry has no name.');
+				}
+				elsif ($strtab_offset) {
+					my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
+					if (defined($name) && length($name->{'string'})) {
+						$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
+					}
+				}
+			}
+			elsif ($entry eq 'st_info') {
 				my $st_bind = ($value >> 4);
 				my $st_type = ($value & 0xf);
 				say($ind + 3, analyseAndExplainValue($st_bind, 'st_bind', $st_info->{$entry}));
@@ -2604,16 +2615,6 @@ sub walkSymbolTable {
 						$extra_explanation2
 					);
 				}
-			}
-		}
-		my $name_offset = $section->{'_symbols'}->{$i}->{'st_name'};
-		if (!$name_offset) {
-			sayf($ind + 2, 'This symbol table entry has no name.');
-		}
-		elsif ($strtab_offset) {
-			my $name = displayStringFromSection($ind + 2, $elf_fh, $elf_data, $strtab, $name_offset);
-			if (defined($name) && length($name->{'string'})) {
-				$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
 			}
 		}
 	}
