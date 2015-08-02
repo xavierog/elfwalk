@@ -3047,6 +3047,28 @@ sub symbolNameFromIndex {
 	return undef;
 }
 
+sub displayStringFromSection {
+	my $ind = shift;
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $rel_offset = shift;
+
+	my $name = readStringFromSection($elf_fh, $elf_data, $section_index, $rel_offset);
+	if (defined($name) && length($name->{'string'})) {
+		sayf(
+			$ind,
+			'Fetched name at offset %s: %s',
+			formatOffset($name->{'abs_offset'}),
+			colored($name->{'string'}, 'name')
+		);
+	}
+	else {
+		say($ind, colored('Error: unable to retrieve the name.', 'error'));
+	}
+	return $name;
+}
+
 sub readStringFromSection {
 	my $elf_fh = shift;
 	my $elf_data = shift;
