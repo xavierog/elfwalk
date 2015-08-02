@@ -2606,8 +2606,11 @@ sub walkSymbolTable {
 				}
 			}
 		}
-		if ($strtab_offset) {
-			my $name_offset = $section->{'_symbols'}->{$i}->{'st_name'};
+		my $name_offset = $section->{'_symbols'}->{$i}->{'st_name'};
+		if (!$name_offset) {
+			sayf($ind + 2, 'This symbol table entry has no name.');
+		}
+		elsif ($strtab_offset) {
 			my $name = displayStringFromSection($ind + 2, $elf_fh, $elf_data, $strtab, $name_offset);
 			if (defined($name) && length($name->{'string'})) {
 				$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
