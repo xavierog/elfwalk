@@ -2968,16 +2968,24 @@ sub segmentIncludesSection {
 	return $segment_includes_section;
 }
 
-sub symbolNameFromIndex {
+sub symbolFromIndex {
 	my $elf_data = shift;
 	my $index = shift;
 
 	for my $section_index (@{$elf_data->{'SHT_DYNSYM'}}) {
-		if (exists($elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index}->{'_name'})) {
-			return $elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index}->{'_name'};
+		if (exists($elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index})) {
+			return $elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index};
 		}
 	}
 	return undef;
+}
+
+sub symbolNameFromIndex {
+	my $elf_data = shift;
+	my $index = shift;
+
+	my $symbol = symbolFromIndex($elf_data, $index);
+	return defined($symbol) ? $symbol->{'_name'} : undef;
 }
 
 sub displayStringTableForSection {
