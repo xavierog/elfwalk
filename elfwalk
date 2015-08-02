@@ -2964,40 +2964,6 @@ sub sectionOffset {
 	return $elf_data->{'e_shoff'} + ($section_index * $elf_data->{'e_shentsize'});
 }
 
-sub sectionNameOffset {
-	my $elf_data = shift;
-	my $section_index = shift;
-
-	# We need the index of the section holding section names.
-	return undef if (!exists($elf_data->{'e_shstrndx'}));
-	my $shstrndx = $elf_data->{'e_shstrndx'};
-
-	# We need details about that section.
-	return undef if (!exists($elf_data->{'sections'}));
-	return undef if (!exists($elf_data->{'sections'}->{$shstrndx}));
-
-	# Especially, we need its offset in the ELF file.
-	return undef if (!exists($elf_data->{'sections'}->{$shstrndx}->{'sh_offset'}));
-	my $shstroffset = $elf_data->{'sections'}->{$shstrndx}->{'sh_offset'};
-
-	# We add it the sh_name offset of the given section.
-	return undef if (!exists($elf_data->{'sections'}->{$section_index}));
-	return undef if (!exists($elf_data->{'sections'}->{$section_index}->{'sh_name'}));
-	return $shstroffset + $elf_data->{'sections'}->{$section_index}->{'sh_name'};
-}
-
-sub sectionName {
-	my $elf_fh = shift;
-	my $elf_data = shift;
-	my $section_index = shift;
-
-	# Compute the offset to the section name.
-	my $name_offset = sectionNameOffset($elf_data, $section_index);
-	return undef if (!defined($name_offset));
-
-	return readStringAtOffset($elf_fh, $name_offset);
-}
-
 sub segmentIncludesSection {
 	my $segment = shift;
 	my $section = shift;
