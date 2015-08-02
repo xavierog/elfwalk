@@ -2519,24 +2519,7 @@ sub walkSymbolTable {
 	my $count = $section->{'sh_size'} / $section->{'sh_entsize'};
 
 	# Where should we read names from?
-	my $strtab_offset = 0;
-	my $strtab = $elf_data->{'sections'}->{$section_index}->{'sh_link'};
-	if ($strtab) {
-		sayf(
-			$ind,
-			'This section is associated with section #%s: %s, of type %s.',
-			colored($strtab, 'index'),
-			colored($elf_data->{'sections'}->{$strtab}->{'_name'}, 'name'),
-			colored($elf_data->{'sections'}->{$strtab}->{'_type'}, 'name')
-		);
-		if ($elf_data->{'sections'}->{$strtab}->{'_type'} eq 'SHT_STRTAB') {
-			$strtab_offset = $elf_data->{'sections'}->{$strtab}->{'sh_offset'};
-			sayf($ind + 1, 'Symbol names will be read from it, i.e. from offset %s.', formatOffset($strtab_offset));
-		}
-		else {
-			say($ind + 1, 'Symbol names will not be read from there though, as its type is not SHT_STRTAB.');
-		}
-	}
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
 
 	my $arch = $elf_data->{'EI_CLASS'};
 	my $st_info = $elf_structures->{'symbol_table'}->{$arch};
@@ -2566,7 +2549,7 @@ sub walkSymbolTable {
 				if (!$value) {
 					sayf($ind + 3, 'This symbol table entry has no name.');
 				}
-				elsif ($strtab_offset) {
+				elsif ($strtab) {
 					my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
 					if (defined($name) && length($name->{'string'})) {
 						$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
