@@ -2491,27 +2491,17 @@ sub walkELFSection {
 		say($ind + 1, $details) if (length($details));
 	}
 
-	# Push the resulting section into $elf_data so sectionName() can leverage it.
+	# Push the resulting section into $elf_data so readStringFromSection() can
+	# leverage it.
 	$elf_data->{'sections'}->{$section_index} = $section;
 
-	my $sh_offname = sectionNameOffset($elf_data, $section_index);
-	if (!defined($sh_offname)) {
-		say($ind, colored('Error: unable to compute section name offset.', 'error'));
-	}
-	else {
-		my $sh_strname = sectionName($elf_fh, $elf_data, $section_index);
-		if (!length($sh_strname)) {
-			say($ind, colored('Error: unable to retrieve section name.', 'error'));
-		}
-		else {
-			$section->{'_name'} = $sh_strname;
-			my $analysis = analyseSectionName($sh_strname);
-			$sh_strname = colored($sh_strname, 'name');
-			say($ind, 'Fetched name at offset ' . formatOffset($sh_offname) . ': ' . $sh_strname);
-			if (defined($analysis->{'long'})) {
-				say($ind, colored('Expected use based on the name:', 'value_name'));
-				say($ind + 1, $analysis->{'long'});
-			}
+	my $name = displayStringFromSection($ind, $elf_fh, $elf_data, $elf_data->{'e_shstrndx'}, $section->{'sh_name'});
+	if (defined($name) && length($name->{'string'})) {
+		$section->{'_name'} = $name->{'string'};
+		my $analysis = analyseSectionName($section->{'_name'});
+		if (defined($analysis->{'long'})) {
+			say($ind, colored('Expected use based on the name:', 'value_name'));
+			say($ind + 1, $analysis->{'long'});
 		}
 	}
 }
@@ -2617,10 +2607,11 @@ sub walkSymbolTable {
 			}
 		}
 		if ($strtab_offset) {
-			my $name_offset = $strtab_offset + $section->{'_symbols'}->{$i}->{'st_name'};
-			my $name = readStringAtOffset($elf_fh, $name_offset);
-			$section->{'_symbols'}->{$i}->{'_name'} = $name;
-			sayf($ind + 2, 'Fetched name at offset %s: %s', formatOffset($name_offset), colored($name, 'name'));
+			my $name_offset = $section->{'_symbols'}->{$i}->{'st_name'};
+			my $name = displayStringFromSection($ind + 2, $elf_fh, $elf_data, $strtab, $name_offset);
+			if (defined($name) && length($name->{'string'})) {
+				$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
+			}
 		}
 	}
 }
@@ -2719,18 +2710,7 @@ sub walkDynamic {
 					for my $section_index (keys(%{$elf_data->{'sections'}})) {
 						my $section = $elf_data->{'sections'}->{$section_index};
 						if ($section->{'_name'} eq '.dynstr') {
-							my $name = readStringFromSection($elf_fh, $elf_data, $section_index, $value);
-							if (defined($name) && length($name->{'string'})) {
-								sayf(
-									$ind + 3,
-									'Fetched name at offset %s: %s',
-									formatOffset($name->{'abs_offset'}),
-									colored($name->{'string'}, 'name')
-								);
-							}
-							else {
-								say($ind + 3, colored('Error: unable to retrieve the name.', 'error'));
-							}
+							displayStringFromSection($ind + 3, $elf_fh, $elf_data, $section_index, $value);
 							last;
 						}
 					}
