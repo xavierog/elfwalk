@@ -2322,16 +2322,16 @@ sub walkELFSections {
 	$elf_data->{'sections'} = {};
 	my $ind = 1;
 
-	announceOperation($ind, 'Parsing section', $elf_data->{'e_shstrndx'}, ' first as it holds section names:');
-	walkELFSection($elf_fh, $elf_data, $elf_data->{'e_shstrndx'});
+	announceOperation($ind, 'Parsing section header', $elf_data->{'e_shstrndx'}, ' first as it holds section names:');
+	walkELFSectionHeader($elf_fh, $elf_data, $elf_data->{'e_shstrndx'});
 
-	announceOperation($ind, 'Not parsing section', 0, ' as it is reserved.');
+	announceOperation($ind, 'Not parsing section header', 0, ' as it is reserved.');
 	say($ind + 1, "It must contain only zeroes.");
 
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		next if ($i == $elf_data->{'e_shstrndx'});
-		announceOperation($ind, 'Parsing section', $i, ':');
-		walkELFSection($elf_fh, $elf_data, $i);
+		announceOperation($ind, 'Parsing section header', $i, ':');
+		walkELFSectionHeader($elf_fh, $elf_data, $i);
 	}
 
 	# Display a summary of sections.
@@ -2400,7 +2400,7 @@ sub walkELFSections {
 	}
 }
 
-sub walkELFSection {
+sub walkELFSectionHeader {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 	my $section_index = shift;
