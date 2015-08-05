@@ -2117,6 +2117,16 @@ sub formatFlags {
 	return $flags_string;
 }
 
+sub formatVersionDefinition {
+	my $verdef = shift;
+
+	my @verdef_strings;
+	for (my $i = 0; $i < $verdef->{'vd_cnt'}; ++ $i) {
+		push(@verdef_strings, $verdef->{'verdaux'}->{$i}->{'name'});
+	}
+	return join(' / ', @verdef_strings);
+}
+
 sub walkELF {
 	my $elf_fh = shift;
 
@@ -2794,6 +2804,67 @@ sub walkDynamic {
 			}
 		}
 		++ $i;
+	}
+}
+
+sub walkVerdef {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 2;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	# How many entries do we intend to read?
+	# Answer from the LSB: "The number of entries in this section shall be
+	# contained in the DT_VERDEFNUM entry of the Dynamic Section .dynamic."
+	my @dt_verdefnum_entries = dynamicEntries($elf_data, 0x6ffffffd); # DT_VERDEFNUM
+	if (!scalar(@dt_verdefnum_entries)) {
+		say($ind, colored('Unable to find the DT_VERDEFNUM entry in .dynamic, aborting the parsing of this section.', 'error'));
+		return;
+	}
+	my $dt_verdefnum = shift(@dt_verdefnum_entries);
+	sayf($ind, 'This section contains DT_VERDEFNUM = %d entries.', $dt_verdefnum);
+
+	# Where should we read names from?
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	for (my $i = 0; $i < $dt_verdefnum; ++ $i) {
+		my $verdef = {};
+
+		# Parse Elfxx_Verdef
+		sayf($ind + 1, '[%d/%d] Version definition entry #%d:', $i + 1, $dt_verdefnum, $i);
+		for my $entry (@{$elf_structures->{'verdef'}->{'ordered_entries'}}) {
+			my $type = $elf_structures->{'verdef'}->{$entry};
+			my $value = readELFValue($elf_fh, $type);
+			say($ind + 2, analyseAndExplainValue($value, $entry, $type));
+			$verdef->{$entry} = $value;
+		}
+
+		if ($verdef->{'vd_cnt'} > 0) {
+			for (my $j = 0; $j < $verdef->{'vd_cnt'}; ++ $j) {
+				sayf($ind + 2, '[%d/%d] Version definition auxiliary entry #%d:', $j + 1, $verdef->{'vd_cnt'}, $j);
+				for my $entry (@{$elf_structures->{'verdaux'}->{'ordered_entries'}}) {
+					my $type = $elf_structures->{'verdaux'}->{$entry};
+					my $value = readELFValue($elf_fh, $type);
+					say($ind + 3, analyseAndExplainValue($value, $entry, $type));
+					$verdef->{'verdaux'}->{$j}->{$entry} = $value;
+					if ($entry eq 'vda_name' && $strtab) {
+						my $name = displayStringFromSection($ind + 4, $elf_fh, $elf_data, $strtab, $value);
+						if (defined($name) && length($name->{'string'})) {
+							$verdef->{'verdaux'}->{$j}->{'name'} = $name->{'string'};
+						}
+					}
+				}
+			}
+		}
+		my $verdef_index = $verdef->{'vd_ndx'};
+		$elf_data->{'verdef'}->{$section_index}->{$verdef_index} = $verdef;
 	}
 }
 
