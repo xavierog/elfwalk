@@ -2457,6 +2457,15 @@ sub walkELFSections {
 		}
 	}
 
+	say(0, colored('Parsing SHT_GNU_verdef sections', 'main_action'));
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		my $section = $elf_data->{'sections'}->{$i};
+		if ($section->{'_type'} eq 'SHT_GNU_verdef') {
+			announceOperation($ind, 'Parsing section', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
+			walkVerdef($elf_fh, $elf_data, $i);
+		}
+	}
+
 	say(0, colored('Parsing SHT_NOTE sections', 'main_action'));
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		my $section = $elf_data->{'sections'}->{$i};
