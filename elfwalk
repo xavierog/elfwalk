@@ -2988,6 +2988,22 @@ sub symbolNameFromIndex {
 	return defined($symbol) ? $symbol->{'_name'} : undef;
 }
 
+sub dynamicEntries {
+	my $elf_data = shift;
+	my $entry_tag = shift;
+
+	my @entries;
+	for my $dynsec_index (keys(%{$elf_data->{'dynamic'}})) {
+		my $dynsec = $elf_data->{'dynamic'}->{$dynsec_index};
+		for my $i (keys(%{$dynsec})) {
+			if ($dynsec->{$i}->{'d_tag'} == $entry_tag) {
+				push(@entries, $dynsec->{$i}->{'d_un'});
+			}
+		}
+	}
+	return @entries;
+}
+
 sub displayStringTableForSection {
 	my $ind = shift;
 	my $elf_data = shift;
