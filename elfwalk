@@ -3045,6 +3045,84 @@ sub walkVerneed {
 	}
 }
 
+sub walkVersym {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 1;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	# How many entries do we intend to read?
+	my $count = $section->{'sh_size'} / $section->{'sh_entsize'};
+	# Note: sh_entsize is expected to be 2 bytes (16 bits) as the LSB states
+	# that "The .gnu.version section shall contain an array of elements of
+	# type Elfxx_Half."
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	# Iterate over entries of the Symbol Version Table.
+	for (my $i = 0; $i < $count; ++ $i) {
+		sayf($ind + 1, '[%d/%d] symbol version entry at index #%s:', $i + 1, $count, $i);
+		if (!$i) {
+			say($ind + 2, 'Skipping as the symbol table entry for index 0 (STN_UNDEF) is reserved');
+			next;
+		}
+
+		my $symbol = symbolFromIndex($elf_data, $i);
+
+		my $value = readELFValue($elf_fh, 'Half');
+		my $printable_value = colored(formatValue($value, 'Half'), 'value');
+
+		my $explanation = 'symbol ' . colored($symbol->{'_name'}, 'name');
+		if (!$value) {
+			$explanation .= ' is local, not available outside this ELF object';
+		}
+		elsif ($value == 1) {
+			$explanation .= ' is defined in this object and is globally available';
+		}
+		else {
+			# "Bit number 15 controls whether or not the object is hidden; if
+			# this bit is set, the object cannot be used and the static linker
+			# will ignore the symbol's presence in the object."
+			if (($value & 0x8000) == 0x8000) {
+				$explanation .= ' is marked as hidden (0x8000) and';
+				# Remove bit #15 prior to the vernaux / verdef lookup.
+				$value &= 0x7FFF;
+			}
+
+			# Check requirements (vernaux entries).
+			my $vernaux;
+			for my $i (keys(%{$elf_data->{'vernaux'}})) {
+				if (exists($elf_data->{'vernaux'}->{$i}->{$value})) {
+					$vernaux = $elf_data->{'vernaux'}->{$i}->{$value};
+					$vernaux = formatVersionRequirement($vernaux);
+					$vernaux = colored($vernaux, 'name');
+					$explanation .= ' requires version ' . $vernaux;
+					goto explained;
+				}
+			}
+
+			# Otherwise, we must display its version _definition_.
+			my $verdef;
+			for my $i (keys(%{$elf_data->{'verdef'}})) {
+				if (exists($elf_data->{'verdef'}->{$i}->{$value})) {
+					$verdef = $elf_data->{'verdef'}->{$i}->{$value};
+					$verdef = formatVersionDefinition($verdef);
+					$verdef = colored($verdef, 'name');
+					$explanation .= ' is provided for version ' . $verdef;
+					goto explained;
+				}
+			}
+		}
+		explained:
+		sayf($ind + 2, '%s: %s.', $printable_value, $explanation);
+	}
+}
+
 sub walkNote {
 	my $elf_fh = shift;
 	my $elf_data = shift;
