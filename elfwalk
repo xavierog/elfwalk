@@ -331,6 +331,32 @@ our $elf_structures = {
 			'p_align' => 'Xword',
 		},
 	},
+	'verdef' => {
+		'ordered_entries' => [
+			'vd_version',
+			'vd_flags',
+			'vd_ndx',
+			'vd_cnt',
+			'vd_hash',
+			'vd_aux',
+			'vd_next',
+		],
+		'vd_version' => 'Half',
+		'vd_flags' => 'Half',
+		'vd_ndx' => 'Half',
+		'vd_cnt' => 'Half',
+		'vd_hash' => 'Word',
+		'vd_aux' => 'Word',
+		'vd_next' => 'Word',
+	},
+	'verdaux' => {
+		'ordered_entries' => [
+			'vda_name',
+			'vda_next',
+		],
+		'vda_name' => 'Word',
+		'vda_next' => 'Word',
+	},
 };
 
 our $elf = {
@@ -1599,6 +1625,48 @@ our $elf = {
 			0x01000000 => 'establish global auditing',
 			0x02000000 => 'singleton symbols are used',
 		},
+	},
+	'vd_version' => {
+		'name' => {
+			0 => 'VER_DEF_NONE',
+			1 => 'VER_DEF_CURRENT',
+		},
+		'meaning' => {
+			0 => 'invalid version',
+			1 => 'current version',
+		},
+	},
+	'vd_flags' => {
+		'is_flag' => 1,
+		'name' => {
+			1 => 'VER_FLG_BASE',
+			2 => 'VER_FLG_WEAK',
+		},
+		'meaning' => {
+			1 => 'version definition of the file',
+			2 => 'weak version identifier',
+		},
+	},
+	'vd_ndx' => {
+		'single_meaning' => 'version index numeric value referenced in the SHT_GNU_versym section',
+	},
+	'vd_cnt' => {
+		'single_meaning' => 'number of associated verdaux array entries',
+	},
+	'vd_hash' => {
+		'single_meaning' => 'version name hash value (ELF hash function)',
+	},
+	'vd_aux' => {
+		'single_meaning' => 'offset in bytes to a corresponding entry in an array of Verdaux structures',
+	},
+	'vd_next' => {
+		'single_meaning' => 'offset to the next verdef entry, in bytes',
+	},
+	'vda_name' => {
+		'single_meaning' => 'offset to the version or dependency name string in the section header, in bytes',
+	},
+	'vda_next' => {
+		'single_meaning' => 'offset to the next verdaux entry, in bytes',
 	},
 	'namesz' => {
 		'single_meaning' => 'size, in bytes, of the note name, i.e. a null-terminated character representation of the entry\'s owner or originator',
