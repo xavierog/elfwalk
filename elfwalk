@@ -357,6 +357,34 @@ our $elf_structures = {
 		'vda_name' => 'Word',
 		'vda_next' => 'Word',
 	},
+	'verneed' => {
+		'ordered_entries' => [
+			'vn_version',
+			'vn_cnt',
+			'vn_file',
+			'vn_aux',
+			'vn_next',
+		],
+		'vn_version' => 'Half',
+		'vn_cnt' => 'Half',
+		'vn_file' => 'Word',
+		'vn_aux' => 'Word',
+		'vn_next' => 'Word',
+	},
+	'vernaux' => {
+		'ordered_entries' => [
+			'vna_hash',
+			'vna_flags',
+			'vna_other',
+			'vna_name',
+			'vna_next',
+		],
+		'vna_hash' => 'Word',
+		'vna_flags' => 'Half',
+		'vna_other' => 'Half',
+		'vna_name' => 'Word',
+		'vna_next' => 'Word',
+	},
 };
 
 our $elf = {
@@ -1667,6 +1695,51 @@ our $elf = {
 	},
 	'vda_next' => {
 		'single_meaning' => 'offset to the next verdaux entry, in bytes',
+	},
+	'vn_version' => {
+		'name' => {
+			0 => 'VER_NEED_NONE',
+			1 => 'VER_NEED_CURRENT',
+		},
+		'meaning' => {
+			0 => 'invalid version',
+			1 => 'current version',
+		},
+	},
+	'vn_cnt' => {
+		'single_meaning' => 'number of associated vernaux array entries',
+	},
+	'vn_file' => {
+		'single_meaning' => 'offset to the file name string in the section header, in bytes',
+	},
+	'vn_aux' => {
+		'single_meaning' => 'offset in bytes to a corresponding entry in an array of Vernaux structures',
+	},
+	'vn_next' => {
+		'single_meaning' => 'offset to the next verneed entry, in bytes',
+	},
+	'vna_hash' => {
+		'single_meaning' => 'dependency name hash value (ELF hash function)',
+	},
+	'vna_flags' => {
+		'is_flag' => 1,
+		'name' => {
+			2 => 'VER_FLG_WEAK',
+			4 => 'VER_FLG_INFO',
+		},
+		'meaning' => {
+			2 => 'weak version identifier',
+			4 => 'this reference exists for informational purposes, and need not be validated at runtime',
+		},
+	},
+	'vna_other' => {
+		'single_meaning' => 'object file version identifier used in the .gnu.version symbol version array',
+	},
+	'vna_name' => {
+		'single_meaning' => 'offset to the dependency name string in the section header, in bytes',
+	},
+	'vna_next' => {
+		'single_meaning' => 'offset to the next vernaux entry, in bytes',
 	},
 	'namesz' => {
 		'single_meaning' => 'size, in bytes, of the note name, i.e. a null-terminated character representation of the entry\'s owner or originator',
