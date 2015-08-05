@@ -2200,6 +2200,17 @@ sub formatVersionDefinition {
 	return join(' / ', @verdef_strings);
 }
 
+sub formatVersionRequirement {
+	my $vernaux = shift;
+
+	my $verneed_string = sprintf(
+		'%s (%s)',
+		$vernaux->{'name'},
+		$vernaux->{'verneed'}->{'file'}
+	);
+	return $verneed_string;
+}
+
 sub walkELF {
 	my $elf_fh = shift;
 
@@ -2947,6 +2958,81 @@ sub walkVerdef {
 		}
 		my $verdef_index = $verdef->{'vd_ndx'};
 		$elf_data->{'verdef'}->{$section_index}->{$verdef_index} = $verdef;
+	}
+}
+
+sub walkVerneed {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 2;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	# How many entries do we intend to read?
+	# Answer from the LSB: "The number of entries in this section shall be
+	# contained in the DT_VERNEEDNUM entry of the Dynamic Section .dynamic."
+	my @dt_verneednum_entries = dynamicEntries($elf_data, 0x6fffffff); # DT_VERNEEDNUM
+	if (!scalar(@dt_verneednum_entries)) {
+		say($ind + 1, colored('Unable to find the DT_VERNEEDNUM entry in .dynamic, aborting the parsing of this section.', 'error'));
+		return;
+	}
+	my $dt_verneednum = shift(@dt_verneednum_entries);
+	sayf($ind, 'This section contains DT_VERNEEDNUM = %d entries.', $dt_verneednum);
+
+	# Where should we read names from?
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	for (my $i = 0; $i < $dt_verneednum; ++ $i) {
+		my $verneed = {};
+
+		# Parse Elfxx_Verneed
+		sayf($ind + 1, '[%d/%d] Version requirements entry #%d:', $i + 1, $dt_verneednum, $i);
+		for my $entry (@{$elf_structures->{'verneed'}->{'ordered_entries'}}) {
+			my $type = $elf_structures->{'verneed'}->{$entry};
+			my $value = readELFValue($elf_fh, $type);
+			say($ind + 2, analyseAndExplainValue($value, $entry, $type));
+			$verneed->{$entry} = $value;
+			if ($entry eq 'vn_file') {
+				my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
+				if (defined($name) && length($name->{'string'})) {
+					$verneed->{'file'} = $name->{'string'};
+				}
+			}
+		}
+		$elf_data->{'verneed'}->{$section_index}->{$i} = $verneed;
+
+		if ($verneed->{'vn_cnt'} > 0) {
+			for (my $j = 0; $j < $verneed->{'vn_cnt'}; ++ $j) {
+				my $vernaux = {};
+				sayf($ind + 2, '[%d/%d] Version requirements auxiliary entry #%d:', $j + 1, $verneed->{'vn_cnt'}, $j);
+				for my $entry (@{$elf_structures->{'vernaux'}->{'ordered_entries'}}) {
+					my $type = $elf_structures->{'vernaux'}->{$entry};
+					my $value = readELFValue($elf_fh, $type);
+					say($ind + 3, analyseAndExplainValue($value, $entry, $type));
+					$vernaux->{$entry} = $value;
+					if ($entry eq 'vna_name' && $strtab) {
+						my $name = displayStringFromSection($ind + 4, $elf_fh, $elf_data, $strtab, $value);
+						if (defined($name) && length($name->{'string'})) {
+							$vernaux->{'name'} = $name->{'string'};
+						}
+					}
+				}
+				# Attach vernaux entries to their parent verneed entry.
+				$verneed->{'vernaux'}->{$j} = $vernaux;
+				# Keep a reference to the parent verneed entry.
+				$vernaux->{'verneed'} = $verneed;
+				# Store vernaux entries in $elf_data indexed by their vna_other
+				# value as this is the equivalent of vd_ndx.
+				my $vernaux_index = $vernaux->{'vna_other'};
+				$elf_data->{'vernaux'}->{$section_index}->{$vernaux_index} = $vernaux;
+			}
+		}
 	}
 }
 
