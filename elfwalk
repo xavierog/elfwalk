@@ -2751,6 +2751,7 @@ sub walkSymbolTable {
 					my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
 					if (defined($name) && length($name->{'string'})) {
 						$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
+						displayHashDetailsForSymbol($ind + 4, $elf_fh, $elf_data, $section->{'_symbols'}->{$i}, $i);
 					}
 				}
 			}
