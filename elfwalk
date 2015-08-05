@@ -3482,6 +3482,66 @@ sub dynamicEntries {
 	return @entries;
 }
 
+sub displayHashDetailsForSymbol {
+	my $ind = shift;
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $symbol = shift;
+	my $symbol_index = shift;
+
+	# Backup the position of the file handler as we are going to mess with it.
+	my $pos = tell($elf_fh);
+
+	my $sizeof_word = $elf_data_types->{$default_class}->{'Word'}->{'size'};
+
+	if (exists($elf_data->{'elf_hash'})) {
+		for my $hash_section_index (keys(%{$elf_data->{'elf_hash'}})) {
+			my $hash_section = $elf_data->{'elf_hash'}->{$hash_section_index};
+			sayf(
+				$ind,
+				'Path to reach that symbol index (i.e. #%d) from its name through hash section %s:',
+				$symbol_index,
+				colored($hash_section->{'name'}, 'name')
+			);
+
+			my $elf_hash = hashSymbolName($symbol->{'_name'});
+			sayf($ind + 1, 'ELF hash: %s', colored(sprintf('0x%08x', $elf_hash), 'value'));
+
+			my $bucket_entry_index = $elf_hash % $hash_section->{'nbucket'};
+			my $bucket_entry_offset = $hash_section->{'bucket_offset'} + ($bucket_entry_index * $sizeof_word);
+			seek($elf_fh, $bucket_entry_offset, Fcntl::SEEK_SET);
+			my $bucket_entry_value = readELFValue($elf_fh, 'Word');
+
+			sayf(
+				$ind + 1,
+				'index y = bucket[ELF hash %% nbucket] = bucket[%s %% %s] = bucket[%s] = %s',
+				colored(sprintf('0x%08x', $elf_hash), 'value'),
+				colored($hash_section->{'nbucket'}, 'value'),
+				colored($bucket_entry_index, 'value'),
+				colored($bucket_entry_value, 'value')
+			);
+
+			for (my $i = 0, my $index = $bucket_entry_value; $index != $symbol_index && $i < 100; ++ $i) {
+				my $chain_entry_offset = $hash_section->{'chain_offset'} + ($index * $sizeof_word);
+				seek($elf_fh, $chain_entry_offset, Fcntl::SEEK_SET);
+				my $chain_entry_value = readELFValue($elf_fh, 'Word');
+				sayf(
+					$ind + 1,
+					'chain[y] = chain[%s] = %s%s',
+					colored($index, 'value'),
+					colored($chain_entry_value, 'value'),
+					($chain_entry_value == $symbol_index) ? ' -- symbol index reached' : ''
+				);
+				$index = $chain_entry_value;
+			}
+		}
+	}
+	# TODO do the same for GNU hash sections
+
+	# Restore the position of the file handler as it was before we mess with it.
+	seek($elf_fh, $pos, Fcntl::SEEK_SET);
+}
+
 sub displayStringTableForSection {
 	my $ind = shift;
 	my $elf_data = shift;
@@ -3605,6 +3665,19 @@ sub readNullTerminatedString {
 sub isPowerOfTwo {
 	my $value = shift;
 	return $value && !($value & ($value - 1));
+}
+
+sub hashSymbolName {
+	my $name = shift;
+
+	my $h = 0;
+	my $g;
+	for (my $i = 0; $i < length($name); ++ $i) {
+		$h = ($h << 4) + ord(substr($name, $i, 1));
+		$h ^= $g >> 24 if ($g = $h & 0xf0000000);
+		$h &= ~$g;
+	}
+	return $h;
 }
 
 # Relocations meanings were written based on the "calculation" column found in
