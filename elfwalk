@@ -2792,6 +2792,72 @@ sub walkSymbolTable {
 	}
 }
 
+sub walkHashSection {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 2;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	# Analyse the structure of the hash section.
+	my $nbucket = readELFValue($elf_fh, 'Word');
+	my $nchain = readELFValue($elf_fh, 'Word');
+	my $sizeof_word = $elf_data_types->{$default_class}->{'Word'}->{'size'};
+	my $bucket_offset = $offset + (2 * $sizeof_word);
+	my $chain_offset = $bucket_offset + ($nbucket * $sizeof_word);
+
+	# Display these pieces of information.
+	sayf($ind, 'This ELF hash section holds:');
+	sayf(
+		$ind,
+		'  - %s bucket entries, i.e. %d bytes, from %s;',
+		colored($nbucket, 'value'),
+		$nbucket * $sizeof_word,
+		formatOffset($bucket_offset)
+	);
+	sayf(
+		$ind,
+		'  - %s chain entries, i.e. %d bytes, from %s.',
+		colored($nchain, 'value'),
+		$nchain * $sizeof_word,
+		formatOffset($chain_offset)
+	);
+
+	# Store these pieces of information for later use.
+	$elf_data->{'elf_hash'}->{$section_index} = {
+		'name' => $section->{'_name'},
+		'nbucket' => $nbucket,
+		'nchain' => $nchain,
+		'bucket_offset' => $bucket_offset,
+		'chain_offset' => $chain_offset,
+	};
+
+	# Optionally display non-zero bucket/chain entries.
+	# This is not done by default because it is hardly relevant for anybody.
+	if (exists($ENV{'ELFWALK_DISPLAY_ELF_HASH_BUCKET_ENTRIES'})) {
+		sayf($ind, 'Non-zero bucket entries:');
+		for (my $i = 0; $i < $nbucket; ++ $i) {
+			my $value = readELFValue($elf_fh, 'Word');
+			next unless ($value);
+			sayf($ind + 1, '#%d: %s, i.e. %s', $i, colored(sprintf('0x%08x', $value), 'value'), colored(sprintf('%d', $value), 'value'));
+		}
+	}
+	if (exists($ENV{'ELFWALK_DISPLAY_ELF_HASH_CHAIN_ENTRIES'})) {
+		sayf($ind, 'Non-zero chain entries:');
+		for (my $i = 0; $i < $nchain; ++ $i) {
+			my $value = readELFValue($elf_fh, 'Word');
+			next unless ($value);
+			sayf($ind + 1, '#%d: %s, i.e. %s', $i, colored(sprintf('0x%08x', $value), 'value'), colored(sprintf('%d', $value), 'value'));
+		}
+	}
+}
+
 sub walkRela {
 	my $elf_fh = shift;
 	my $elf_data = shift;
