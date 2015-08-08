@@ -3585,26 +3585,15 @@ sub displayStringTableForSection {
 	my $elf_data = shift;
 	my $section_index = shift;
 
-	my $section = $elf_data->{'sections'}->{$section_index};
-	return if (!defined($section));
-
-	my $strtab_index = $section->{'sh_link'};
-	if ($strtab_index && exists($elf_data->{'sections'}->{$strtab_index})) {
-		my $strtab = $elf_data->{'sections'}->{$strtab_index};
-		sayf(
-			$ind,
-			'This section is associated with section #%s: %s, of type %s.',
-			colored($strtab_index, 'index'),
-			colored($strtab->{'_name'}, 'name'),
-			colored($strtab->{'_type'}, 'name')
-		);
+	my $strtab = displayLinkedSection($ind, $elf_data, $section_index);
+	if (defined($strtab)) {
 		if ($strtab->{'_type'} eq 'SHT_STRTAB') {
 			sayf(
 				$ind + 1,
 				'Symbol names will be read from it, i.e. from offset %s.',
 				formatOffset($strtab->{'sh_offset'})
 			);
-			return $strtab_index;
+			return $strtab->{'_index'};
 		}
 		else {
 			say($ind + 1, 'Symbol names will not be read from there though, as its type is not SHT_STRTAB.');
