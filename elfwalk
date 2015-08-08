@@ -2691,6 +2691,7 @@ sub walkELFSectionHeader {
 
 	# Push the resulting section into $elf_data so readStringFromSection() can
 	# leverage it.
+	$section->{'_index'} = $section_index;
 	$elf_data->{'sections'}->{$section_index} = $section;
 
 	my $name = displayStringFromSection($ind, $elf_fh, $elf_data, $elf_data->{'e_shstrndx'}, $section->{'sh_name'});
