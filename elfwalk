@@ -3544,6 +3544,42 @@ sub displayHashDetailsForSymbol {
 	seek($elf_fh, $pos, Fcntl::SEEK_SET);
 }
 
+sub getLinkedSection {
+	my $elf_data = shift;
+	my $section_index = shift;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return undef if (!defined($section));
+
+	my $linked_index = $section->{'sh_link'};
+	if ($linked_index && exists($elf_data->{'sections'}->{$linked_index})) {
+		return $elf_data->{'sections'}->{$linked_index};
+	}
+	return undef;
+}
+
+
+sub displayLinkedSection {
+	my $ind = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+
+	my $linked_section = getLinkedSection($elf_data, $section_index);
+	if (!$linked_section) {
+		sayf($ind, 'This section is not associated to any other section.');
+	}
+	else {
+		sayf(
+			$ind,
+			'This section is associated with section #%s: %s, of type %s.',
+			colored($linked_section->{'_index'}, 'index'),
+			colored($linked_section->{'_name'}, 'name'),
+			colored($linked_section->{'_type'}, 'name')
+		);
+	}
+	return $linked_section;
+}
+
 sub displayStringTableForSection {
 	my $ind = shift;
 	my $elf_data = shift;
