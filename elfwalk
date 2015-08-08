@@ -2812,6 +2812,8 @@ sub walkHashSection {
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
 
+	displayLinkedSection($ind, $elf_data, $section_index);
+
 	my $offset = $section->{'sh_offset'};
 	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
