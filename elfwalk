@@ -2897,6 +2897,90 @@ sub walkHashSection {
 	}
 }
 
+sub walkGnuHashSection {
+	my $elf_fh = shift;
+	my $elf_data = shift;
+	my $section_index = shift;
+	my $ind = 2;
+
+	my $section = $elf_data->{'sections'}->{$section_index};
+	return if (!defined($section));
+
+	my $linked_section = displayLinkedSection($ind, $elf_data, $section_index);
+	my $symbols_count = 0;
+	if (defined($linked_section)) {
+		$symbols_count = $linked_section->{'sh_size'} / $linked_section->{'sh_entsize'};
+	}
+
+	my $offset = $section->{'sh_offset'};
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	seek($elf_fh, $offset, Fcntl::SEEK_SET);
+
+	# Analyse the header of the hash section.
+	sayf($ind, 'This GNU hash section holds:');
+	sayf($ind, '  - a header, made of 4 32-bit words:');
+	my $gnu_hash = {
+		'_index' => $section_index,
+		'name' => $section->{'_name'},
+	};
+	for my $entry (@{$elf_structures->{'gnu_hash'}->{'ordered_entries'}}) {
+		my $type = $elf_structures->{'gnu_hash'}->{$entry};
+		my $value = $gnu_hash->{$entry} = readELFValue($elf_fh, $type);
+		say($ind + 2, analyseAndExplainValue($value, $entry, $type));
+
+		if ($entry eq 'maskwords') {
+			my $details = 'This value must be a power of two.';
+			if (!isPowerOfTwo($value)) {
+				sayf($ind + 1, colored($details, 'error'));
+			}
+		}
+	}
+
+	# Compute extra values related to the Bloom filter/mask.
+	$gnu_hash->{'sizeof_maskword'} = $default_class * 4;
+	$gnu_hash->{'mask_offset'} = $offset + (4 * typeInfo('Word')->{'size'});
+	$gnu_hash->{'mask_size'} = $gnu_hash->{'maskwords'} * $gnu_hash->{'sizeof_maskword'};
+
+	# Compute extra values related to the buckets.
+	$gnu_hash->{'bucket_offset'} = $gnu_hash->{'mask_offset'} + $gnu_hash->{'mask_size'};
+	$gnu_hash->{'bucket_size'} = $gnu_hash->{'nbuckets'} * 4;
+
+	# Compute extra values related to the chains.
+	$gnu_hash->{'chain_offset'} = $gnu_hash->{'bucket_offset'} + $gnu_hash->{'bucket_size'};
+	$gnu_hash->{'chain_count'} = $symbols_count - $gnu_hash->{'symndx'};
+	$gnu_hash->{'chain_size'} = $gnu_hash->{'nbuckets'} * 4;
+
+	# Display these pieces of information.
+	sayf(
+		$ind,
+		'  - a Bloom filter, %s %d-bit words long, i.e. %s bytes long, from %s; this filter is used to rapidly reject attempts to look up symbols that do not exist in the object',
+		colored($gnu_hash->{'maskwords'}, 'value'),
+		$default_class * 32,
+		$gnu_hash->{'mask_size'},
+		formatOffset($gnu_hash->{'mask_offset'})
+	);
+	sayf(
+		$ind,
+		'  - an array of %s 32-bit hash buckets, i.e. %d bytes, from %s.',
+		colored($gnu_hash->{'nbuckets'}, 'value'),
+		$gnu_hash->{'bucket_size'},
+		formatOffset($gnu_hash->{'bucket_offset'})
+	);
+	sayf(
+		$ind,
+		'  - an array of %s (%d symbols in %s - %s) 32-bit hash chain values, one per dynamic symbol that is to be accessible from the hash table, i.e. %d bytes, from %s',
+		colored($gnu_hash->{'chain_count'}, 'value'),
+		$symbols_count,
+		colored($linked_section->{'_name'}, 'name'),
+		colored('symndx', 'value_name'),
+		$gnu_hash->{'chain_size'},
+		formatOffset($gnu_hash->{'chain_offset'})
+	);
+
+	# Store these pieces of information for later use.
+	$elf_data->{'gnu_hash'}->{$section_index} = $gnu_hash;
+}
+
 sub walkRela {
 	my $elf_fh = shift;
 	my $elf_data = shift;
@@ -3733,6 +3817,18 @@ sub hashSymbolName {
 		$h &= ~$g;
 	}
 	return $h;
+}
+
+sub hashSymbolNameGNUStyle {
+	my $name = shift;
+
+	use bigint;
+	my $h = 5381;
+	my $ch;
+	for (my $i = 0; $i < length($name); ++ $i) {
+		$h = ($h * 33) + ord(substr($name, $i, 1));
+	}
+	return $h & 0xffffffff;
 }
 
 # Relocations meanings were written based on the "calculation" column found in
