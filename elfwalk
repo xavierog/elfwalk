@@ -23,6 +23,8 @@
 #    http://refspecs.linuxfoundation.org/LSB_5.0.0/LSB-Core-AMD64/LSB-Core-AMD64/tocobjformat.html
 # Oracle Solaris OS: Linker and Libraries Guide
 #    http://docs.oracle.com/cd/E18752_01/pdf/817-1984.pdf
+# GNU Hash ELF Sections by Ali Bahrami
+#    https://blogs.oracle.com/ali/entry/gnu_hash_elf_sections
 
 # About the naming of functions: this script uses camel case for functions.
 # I wish to quote a friend of mine about that:
@@ -384,6 +386,18 @@ our $elf_structures = {
 		'vna_other' => 'Half',
 		'vna_name' => 'Word',
 		'vna_next' => 'Word',
+	},
+	'gnu_hash' => {
+		'ordered_entries' => [
+			'nbuckets',
+			'symndx',
+			'maskwords',
+			'shift2',
+		],
+		'nbuckets' => 'Word',
+		'symndx' => 'Word',
+		'maskwords' => 'Word',
+		'shift2' => 'Word',
 	},
 };
 
@@ -1866,6 +1880,18 @@ our $elf = {
 	},
 	'r_addend' => {
 		'single_meaning' => 'constant addend used to compute the value to be stored into the relocatable field',
+	},
+	'nbuckets' => {
+		'single_meaning' => 'number of hash buckets',
+	},
+	'symndx' => {
+		'single_meaning' => 'index of the first symbol in the dynamic symbol table that is to be accessible via the hash table',
+	},
+	'maskwords' => {
+		'single_meaning' => 'number of ELFCLASS sized words in the Bloom filter portion of the hash table section',
+	},
+	'shift2' => {
+		'single_meaning' => 'a shift count used by the Bloom filter',
 	},
 	'p_type' => {
 		'name' => {
