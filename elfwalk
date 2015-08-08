@@ -2548,6 +2548,15 @@ sub walkELFSections {
 		}
 	}
 
+	say(0, colored('Parsing SHT_GNU_HASH sections', 'main_action'));
+	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
+		my $section = $elf_data->{'sections'}->{$i};
+		if ($section->{'_type'} eq 'SHT_GNU_HASH') {
+			announceOperation($ind, 'Parsing section', $i, ' (' . colored($section->{'_name'}, 'name') . '):');
+			walkGnuHashSection($elf_fh, $elf_data, $i);
+		}
+	}
+
 	say(0, colored('Parsing SHT_DYNSYM sections (and associated SHT_STRTAB sections)', 'main_action'));
 	for (my $i = 1; $i < $elf_data->{'e_shnum'}; ++ $i) {
 		my $section = $elf_data->{'sections'}->{$i};
