@@ -3659,7 +3659,72 @@ sub displayHashDetailsForSymbol {
 			}
 		}
 	}
-	# TODO do the same for GNU hash sections
+
+	if (exists($elf_data->{'gnu_hash'})) {
+		for my $gnu_section_index (keys(%{$elf_data->{'gnu_hash'}})) {
+			my $gnu_section = $elf_data->{'gnu_hash'}->{$gnu_section_index};
+			sayf(
+				$ind,
+				'Path to reach that symbol index (i.e. #%d) from its name through GNU hash section %s:',
+				$symbol_index,
+				colored($gnu_section->{'name'}, 'name')
+			);
+
+			if ($symbol_index < $gnu_section->{'symndx'}) {
+				sayf($ind + 1, 'This symbol is not meant to be accessible via the GNU hash section.');
+				return;
+			}
+
+			my $gnu_hash = hashSymbolNameGNUStyle($symbol->{'_name'});
+			sayf($ind + 1, 'GNU hash: %s', colored(sprintf('0x%08x', $gnu_hash), 'value'));
+			my $bucket_entry_index = $gnu_hash % $gnu_section->{'nbuckets'};
+			my $bucket_entry_offset = $gnu_section->{'bucket_offset'} + ($bucket_entry_index * $sizeof_word);
+			seek($elf_fh, $bucket_entry_offset, Fcntl::SEEK_SET);
+			my $bucket_entry_value = readELFValue($elf_fh, 'Word');
+			sayf(
+				$ind + 1,
+				'index y = bucket[GNU hash %% nbucket] = bucket[%s %% %s] = bucket[%s] = %s',
+				colored(sprintf('0x%08x', $gnu_hash), 'value'),
+				colored($gnu_section->{'nbuckets'}, 'value'),
+				colored($bucket_entry_index, 'value'),
+				colored($bucket_entry_value, 'value')
+			);
+			if (!$bucket_entry_value) {
+				sayf($ind + 1, 'Got empty hash chain, cannot reach symbol.');
+			}
+
+			for (my $i = 0, my $index = $bucket_entry_value; $i < 100; ++ $i, ++ $index) {
+				my $chain_entry_offset = $gnu_section->{'chain_offset'} + (($index - $gnu_section->{'symndx'}) * $sizeof_word);
+				seek($elf_fh, $chain_entry_offset, Fcntl::SEEK_SET);
+				my $chain_entry_value = readELFValue($elf_fh, 'Word');
+				sayf(
+					$ind + 1,
+					'chain[y - %s] = chain[%s - %s] = chain[%s] = %s',
+					colored('symndx', 'value_name'),
+					colored($index, 'value'),
+					colored($gnu_section->{'symndx'}, 'value'),
+					colored($index - $gnu_section->{'symndx'}, 'value'),
+					colored(sprintf('0x%08x', $chain_entry_value), 'value'),
+				);
+				if (($gnu_hash & ~1) == ($chain_entry_value & ~1)) {
+					my $conclusion = 'The first 31 bits match the GNU hash of the symbol we are looking for';
+					# We do not need to compare names as we already know what
+					# index we are looking for.
+					if ($index != $symbol_index) {
+						sayf($ind + 1, $conclusion . ', but this is not the expected symbol index: we must continue.');
+					}
+					else {
+						sayf($ind + 1, $conclusion . ' -- symbol index reached');
+						last;
+					}
+				}
+				if ($chain_entry_value & 1) {
+					sayf($ind + 1, 'Reached end of chain, unable to reach symbol index.');
+					last;
+				}
+			}
+		}
+	}
 
 	# Restore the position of the file handler as it was before we mess with it.
 	seek($elf_fh, $pos, Fcntl::SEEK_SET);
