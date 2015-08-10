@@ -2777,29 +2777,28 @@ sub walkSymbolTable {
 			my $value = readELFValue($elf_fh, $st_info->{$entry});
 			$section->{'_symbols'}->{$i}->{$entry} = $value;
 			# and provide a first basic explanation.
-			say($ind + 2, analyseAndExplainValue($value, $entry, $st_info->{$entry}));
+			say($ind + 1, analyseAndExplainValue($value, $entry, $st_info->{$entry}));
 
 			if ($entry eq 'st_name') {
 				if (!$value) {
-					sayf($ind + 3, 'This symbol table entry has no name.');
+					sayf($ind + 2, 'This symbol table entry has no name.');
 				}
 				elsif ($strtab) {
-					my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
+					my $name = displayStringFromSection($ind + 2, $elf_fh, $elf_data, $strtab, $value);
 					if (defined($name) && length($name->{'string'})) {
 						$section->{'_symbols'}->{$i}->{'_name'} = $name->{'string'};
-						displayHashDetailsForSymbol($ind + 4, $elf_fh, $elf_data, $section->{'_symbols'}->{$i}, $i);
 					}
 				}
 			}
 			elsif ($entry eq 'st_info') {
 				my $st_bind = ($value >> 4);
 				my $st_type = ($value & 0xf);
-				say($ind + 3, analyseAndExplainValue($st_bind, 'st_bind', $st_info->{$entry}));
-				say($ind + 3, analyseAndExplainValue($st_type, 'st_type', $st_info->{$entry}));
+				say($ind + 2, analyseAndExplainValue($st_bind, 'st_bind', $st_info->{$entry}));
+				say($ind + 2, analyseAndExplainValue($st_type, 'st_type', $st_info->{$entry}));
 			}
 			elsif ($entry eq 'st_shndx') {
 				sayf(
-					$ind + 3,
+					$ind + 2,
 					'Here, %s is the index of section %s.',
 					colored($value, 'value'),
 					colored($elf_data->{'sections'}->{$value}->{'_name'}, 'name')
@@ -2826,7 +2825,7 @@ sub walkSymbolTable {
 					}
 
 					sayf(
-						$ind + 3,
+						$ind + 2,
 						'Here, since %s, %s holds %s.',
 						$extra_explanation1,
 						colored('st_value', 'value_name'),
@@ -2834,6 +2833,10 @@ sub walkSymbolTable {
 					);
 				}
 			}
+		}
+		# If the symbol has a name, display how to look it up through hash sections.
+		if (exists($section->{'_symbols'}->{$i}->{'_name'})) {
+			displayHashDetailsForSymbol($ind + 1, $elf_fh, $elf_data, $section->{'_symbols'}->{$i}, $i);
 		}
 	}
 }
@@ -3021,23 +3024,23 @@ sub walkRela {
 			my $value = readELFValue($elf_fh, $rela_info->{$entry});
 			$section->{'_relocations'}->{$i}->{$entry} = $value;
 			# and provide a first basic explanation.
-			say($ind + 2, analyseAndExplainValue($value, $entry, $rela_info->{$entry}));
+			say($ind + 1, analyseAndExplainValue($value, $entry, $rela_info->{$entry}));
 
 			if ($entry eq 'r_info') {
 				# Extract r_sym from r_info.
 				my $r_sym = ($value >> ($arch == ELFCLASS32 ? 8 : 32));
 				$section->{'_relocations'}->{$i}->{'r_sym'} = $r_sym;
-				say($ind + 3, analyseAndExplainValue($r_sym, 'r_sym', $rela_info->{$entry}));
+				say($ind + 2, analyseAndExplainValue($r_sym, 'r_sym', $rela_info->{$entry}));
 
 				# Get the name of the associated symbol.
 				my $symbol_name = symbolNameFromIndex($elf_data, $r_sym);
 				$section->{'_relocations'}->{$i}->{'_symbol'} = $symbol_name;
-				sayf($ind + 4, 'Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name'));
+				sayf($ind + 3, 'Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name'));
 
 				# Extract r_type from r_info.
 				my $r_type = ($arch == ELFCLASS32 ? ($value & 0xFF) : ($value & 0xFFFFFFFF));
 				$section->{'_relocations'}->{$i}->{'r_type'} = $r_sym;
-				say($ind + 3, analyseAndExplainValue($r_type, 'r_type', $rela_info->{$entry}, undef, $elf_data->{'e_machine'}));
+				say($ind + 2, analyseAndExplainValue($r_type, 'r_type', $rela_info->{$entry}, undef, $elf_data->{'e_machine'}));
 			}
 		}
 	}
@@ -3047,7 +3050,7 @@ sub walkDynamic {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 	my $section_index = shift;
-	my $ind = 1;
+	my $ind = 2;
 
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
@@ -3057,7 +3060,7 @@ sub walkDynamic {
 	my $dyn_info = $elf_structures->{'dynamic'}->{$arch};
 
 	my $offset = $section->{'sh_offset'};
-	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 	my $dyn_section = $elf_data->{'dynamic'}->{$section_index} = {};
@@ -3067,7 +3070,7 @@ sub walkDynamic {
 		dynamic_entry: for my $entry (@{$dyn_info->{'ordered_entries'}}) {
 			my $value = readELFValue($elf_fh, $dyn_info->{$entry});
 			$dyn_section->{$i}->{$entry} = $value;
-			say($ind + 2, analyseAndExplainValue($value, $entry, $dyn_info->{$entry}));
+			say($ind, analyseAndExplainValue($value, $entry, $dyn_info->{$entry}));
 
 			if ($entry eq 'd_un') {
 				my $tag_value = $dyn_section->{$i}->{'d_tag'};
@@ -3084,7 +3087,7 @@ sub walkDynamic {
 					for my $section_index (keys(%{$elf_data->{'sections'}})) {
 						my $section = $elf_data->{'sections'}->{$section_index};
 						if ($section->{'_name'} eq '.dynstr') {
-							displayStringFromSection($ind + 3, $elf_fh, $elf_data, $section_index, $value);
+							displayStringFromSection($ind + 1, $elf_fh, $elf_data, $section_index, $value);
 							last;
 						}
 					}
@@ -3102,13 +3105,13 @@ sub walkDynamic {
 					}
 					$value = sprintf('%d', $value);
 					$value = colored($value, 'value');
-					sayf($ind + 3, 'Here, %s %s.', $value, $meaning);
+					sayf($ind + 1, 'Here, %s %s.', $value, $meaning);
 				}
 				elsif ($tag_value == 30) { # DT_FLAGS
-					say($ind + 3, analyseAndExplainValue($value, 'dt_flags', $dyn_info->{'d_un'}));
+					say($ind + 1, analyseAndExplainValue($value, 'dt_flags', $dyn_info->{'d_un'}));
 				}
 				elsif ($tag_value == 0x6FFFFFFB) { # DT_FLAGS_1
-					say($ind + 3, analyseAndExplainValue($value, 'dt_flags_1', $dyn_info->{'d_un'}));
+					say($ind + 1, analyseAndExplainValue($value, 'dt_flags_1', $dyn_info->{'d_un'}));
 				}
 			}
 		}
@@ -3147,24 +3150,24 @@ sub walkVerdef {
 		my $verdef = {};
 
 		# Parse Elfxx_Verdef
-		sayf($ind + 1, '[%d/%d] Version definition entry #%d:', $i + 1, $dt_verdefnum, $i);
+		sayf($ind, '[%d/%d] Version definition entry #%d:', $i + 1, $dt_verdefnum, $i);
 		for my $entry (@{$elf_structures->{'verdef'}->{'ordered_entries'}}) {
 			my $type = $elf_structures->{'verdef'}->{$entry};
 			my $value = readELFValue($elf_fh, $type);
-			say($ind + 2, analyseAndExplainValue($value, $entry, $type));
+			say($ind + 1, analyseAndExplainValue($value, $entry, $type));
 			$verdef->{$entry} = $value;
 		}
 
 		if ($verdef->{'vd_cnt'} > 0) {
 			for (my $j = 0; $j < $verdef->{'vd_cnt'}; ++ $j) {
-				sayf($ind + 2, '[%d/%d] Version definition auxiliary entry #%d:', $j + 1, $verdef->{'vd_cnt'}, $j);
+				sayf($ind + 1, '[%d/%d] Version definition auxiliary entry #%d:', $j + 1, $verdef->{'vd_cnt'}, $j);
 				for my $entry (@{$elf_structures->{'verdaux'}->{'ordered_entries'}}) {
 					my $type = $elf_structures->{'verdaux'}->{$entry};
 					my $value = readELFValue($elf_fh, $type);
-					say($ind + 3, analyseAndExplainValue($value, $entry, $type));
+					say($ind + 2, analyseAndExplainValue($value, $entry, $type));
 					$verdef->{'verdaux'}->{$j}->{$entry} = $value;
 					if ($entry eq 'vda_name' && $strtab) {
-						my $name = displayStringFromSection($ind + 4, $elf_fh, $elf_data, $strtab, $value);
+						my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
 						if (defined($name) && length($name->{'string'})) {
 							$verdef->{'verdaux'}->{$j}->{'name'} = $name->{'string'};
 						}
@@ -3191,7 +3194,7 @@ sub walkVerneed {
 	# contained in the DT_VERNEEDNUM entry of the Dynamic Section .dynamic."
 	my @dt_verneednum_entries = dynamicEntries($elf_data, 0x6fffffff); # DT_VERNEEDNUM
 	if (!scalar(@dt_verneednum_entries)) {
-		say($ind + 1, colored('Unable to find the DT_VERNEEDNUM entry in .dynamic, aborting the parsing of this section.', 'error'));
+		say($ind, colored('Unable to find the DT_VERNEEDNUM entry in .dynamic, aborting the parsing of this section.', 'error'));
 		return;
 	}
 	my $dt_verneednum = shift(@dt_verneednum_entries);
@@ -3208,14 +3211,14 @@ sub walkVerneed {
 		my $verneed = {};
 
 		# Parse Elfxx_Verneed
-		sayf($ind + 1, '[%d/%d] Version requirements entry #%d:', $i + 1, $dt_verneednum, $i);
+		sayf($ind, '[%d/%d] Version requirements entry #%d:', $i + 1, $dt_verneednum, $i);
 		for my $entry (@{$elf_structures->{'verneed'}->{'ordered_entries'}}) {
 			my $type = $elf_structures->{'verneed'}->{$entry};
 			my $value = readELFValue($elf_fh, $type);
-			say($ind + 2, analyseAndExplainValue($value, $entry, $type));
+			say($ind + 1, analyseAndExplainValue($value, $entry, $type));
 			$verneed->{$entry} = $value;
 			if ($entry eq 'vn_file') {
-				my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
+				my $name = displayStringFromSection($ind + 2, $elf_fh, $elf_data, $strtab, $value);
 				if (defined($name) && length($name->{'string'})) {
 					$verneed->{'file'} = $name->{'string'};
 				}
@@ -3226,14 +3229,14 @@ sub walkVerneed {
 		if ($verneed->{'vn_cnt'} > 0) {
 			for (my $j = 0; $j < $verneed->{'vn_cnt'}; ++ $j) {
 				my $vernaux = {};
-				sayf($ind + 2, '[%d/%d] Version requirements auxiliary entry #%d:', $j + 1, $verneed->{'vn_cnt'}, $j);
+				sayf($ind + 1, '[%d/%d] Version requirements auxiliary entry #%d:', $j + 1, $verneed->{'vn_cnt'}, $j);
 				for my $entry (@{$elf_structures->{'vernaux'}->{'ordered_entries'}}) {
 					my $type = $elf_structures->{'vernaux'}->{$entry};
 					my $value = readELFValue($elf_fh, $type);
-					say($ind + 3, analyseAndExplainValue($value, $entry, $type));
+					say($ind + 2, analyseAndExplainValue($value, $entry, $type));
 					$vernaux->{$entry} = $value;
 					if ($entry eq 'vna_name' && $strtab) {
-						my $name = displayStringFromSection($ind + 4, $elf_fh, $elf_data, $strtab, $value);
+						my $name = displayStringFromSection($ind + 3, $elf_fh, $elf_data, $strtab, $value);
 						if (defined($name) && length($name->{'string'})) {
 							$vernaux->{'name'} = $name->{'string'};
 						}
@@ -3256,7 +3259,7 @@ sub walkVersym {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 	my $section_index = shift;
-	my $ind = 1;
+	my $ind = 2;
 
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
@@ -3268,14 +3271,14 @@ sub walkVersym {
 	# type Elfxx_Half."
 
 	my $offset = $section->{'sh_offset'};
-	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 	# Iterate over entries of the Symbol Version Table.
 	for (my $i = 0; $i < $count; ++ $i) {
-		sayf($ind + 1, '[%d/%d] symbol version entry at index #%s:', $i + 1, $count, $i);
+		sayf($ind, '[%d/%d] symbol version entry at index #%s:', $i + 1, $count, $i);
 		if (!$i) {
-			say($ind + 2, 'Skipping as the symbol table entry for index 0 (STN_UNDEF) is reserved');
+			say($ind + 1, 'Skipping as the symbol table entry for index 0 (STN_UNDEF) is reserved');
 			next;
 		}
 
@@ -3326,7 +3329,7 @@ sub walkVersym {
 			}
 		}
 		explained:
-		sayf($ind + 2, '%s: %s.', $printable_value, $explanation);
+		sayf($ind + 1, '%s: %s.', $printable_value, $explanation);
 	}
 }
 
@@ -3334,7 +3337,7 @@ sub walkNote {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 	my $section_index = shift;
-	my $ind = 1;
+	my $ind = 2;
 
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
@@ -3344,24 +3347,24 @@ sub walkNote {
 	my $note_info = $elf_structures->{'note'}->{$arch};
 
 	my $offset = $section->{'sh_offset'};
-	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 	# Read expected fields: namesz, descsz, type.
 	for my $entry (@{$note_info->{'ordered_entries'}}) {
 		my $value = readELFValue($elf_fh, $note_info->{$entry});
 		$elf_data->{'_notes'}->{$section_index}->{$entry} = $value;
-		say($ind + 2, analyseAndExplainValue($value, $entry, $note_info->{$entry}));
+		say($ind, analyseAndExplainValue($value, $entry, $note_info->{$entry}));
 	}
 
 	# Read the name.
 	my $name_size = $elf_data->{'_notes'}->{$section_index}->{'namesz'};
 	if ($name_size) {
 		my $name = readNullTerminatedString($elf_fh, $name_size);
-		sayf($ind + 2, '%s is "%s".', colored('name', 'value_name'), colored($name, 'value'));
+		sayf($ind, '%s is "%s".', colored('name', 'value_name'), colored($name, 'value'));
 	}
 	else {
-		sayf($ind + 2, '%s will not be read as %s is 0.', colored('name', 'value_name'), colored('namesz', 'value_name'));
+		sayf($ind, '%s will not be read as %s is 0.', colored('name', 'value_name'), colored('namesz', 'value_name'));
 	}
 
 	# Cross potential padding: "Padding is present, if necessary, to ensure
@@ -3370,37 +3373,37 @@ sub walkNote {
 	my $cur_pos = my $new_pos = tell($elf_fh);
 	++ $new_pos while ($new_pos % 4);
 	if ($new_pos != $cur_pos) {
-		sayf($ind + 2, 'Seeking to offset %s to cross the padding', formatOffset($new_pos));
+		sayf($ind, 'Seeking to offset %s to cross the padding', formatOffset($new_pos));
 		seek($elf_fh, $new_pos, Fcntl::SEEK_SET);
 	}
 
 	# Read the descriptor.
 	if ($section->{'_name'} eq '.note.ABI-tag') {
-		sayf($ind + 2, 'The note section being named %s, we know how to interpret the descriptor:', colored('.note.ABI-tag', 'name'));
+		sayf($ind, 'The note section being named %s, we know how to interpret the descriptor:', colored('.note.ABI-tag', 'name'));
 		my $value = readELFValue($elf_fh, 'Word');
-		sayf($ind + 3, '%s: this is expected to be 0, signifying a Linux executable.', colored(formatValue($value, 'Word'), 'value'));
+		sayf($ind + 1, '%s: this is expected to be 0, signifying a Linux executable.', colored(formatValue($value, 'Word'), 'value'));
 		my $kv1 = readELFValue($elf_fh, 'Word');
-		sayf($ind + 3, '%s: this is the earliest kernel version compatible with this file', colored(formatValue($kv1, 'Word'), 'value'));
+		sayf($ind + 1, '%s: this is the earliest kernel version compatible with this file', colored(formatValue($kv1, 'Word'), 'value'));
 		my $kv2 = readELFValue($elf_fh, 'Word');
-		sayf($ind + 3, '%s: this is the earliest kernel major revision compatible with this file', colored(formatValue($kv2, 'Word'), 'value'));
+		sayf($ind + 1, '%s: this is the earliest kernel major revision compatible with this file', colored(formatValue($kv2, 'Word'), 'value'));
 		my $kv3 = readELFValue($elf_fh, 'Word');
-		sayf($ind + 3, '%s: this is the earliest kernel minor revision compatible with this file', colored(formatValue($kv3, 'Word'), 'value'));
+		sayf($ind + 1, '%s: this is the earliest kernel minor revision compatible with this file', colored(formatValue($kv3, 'Word'), 'value'));
 		$elf_data->{'_kernel'} = sprintf('%d.%d.%d', $kv1, $kv2, $kv3);
-		sayf($ind + 2, 'Basically, this note states this file requires at least Linux kernel %s.', colored($elf_data->{'_kernel'}, 'value'));
+		sayf($ind, 'Basically, this note states this file requires at least Linux kernel %s.', colored($elf_data->{'_kernel'}, 'value'));
 	}
 	elsif ($section->{'_name'} eq '.note.gnu.build-id') {
 		my $desc_size = $elf_data->{'_notes'}->{$section_index}->{'descsz'};
-		sayf($ind + 2, 'The note section being named %s, we know how to interpret the descriptor:', colored('.note.gnu.build-id', 'name'));
-		sayf($ind + 3, 'This descriptor is expected to host a unique build ID, for debugging purposes.');
+		sayf($ind, 'The note section being named %s, we know how to interpret the descriptor:', colored('.note.gnu.build-id', 'name'));
+		sayf($ind + 1, 'This descriptor is expected to host a unique build ID, for debugging purposes.');
 		# I took the same heuristic as "file", with a minimal amount of shame.
 		my $id_type = ($desc_size == 16) ? 'a MD5 hash or a UUID' : 'a SHA1 hash';
-		sayf($ind + 3, 'This descriptor being %d bytes, it is very likely to host %s.', $desc_size, $id_type);
+		sayf($ind + 1, 'This descriptor being %d bytes, it is very likely to host %s.', $desc_size, $id_type);
 		my $build_id = '';
 		for (my $i = 0; $i < $desc_size; ++ $i) {
 			my $byte = readELFValue($elf_fh, 'char');
 			$build_id .=  sprintf('%02x', $byte);
 		}
-		sayf($ind + 3, 'The build ID of this file is: %s.', colored($build_id, 'value'));
+		sayf($ind + 1, 'The build ID of this file is: %s.', colored($build_id, 'value'));
 	}
 }
 
@@ -3408,23 +3411,23 @@ sub walkProgBits {
 	my $elf_fh = shift;
 	my $elf_data = shift;
 	my $section_index = shift;
-	my $ind = 1;
+	my $ind = 2;
 
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
 
 	my $offset = $section->{'sh_offset'};
-	sayf($ind + 1, 'Seeking to offset sh_offset = %s', formatOffset($offset));
+	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
 	seek($elf_fh, $offset, Fcntl::SEEK_SET);
 
 	if ($section->{'_name'} eq '.interp') {
 		my $interp = readNullTerminatedString($elf_fh, $section->{'sh_size'});
 		if (length($interp)) {
 			$elf_data->{'.interp'} = $interp;
-			sayf($ind + 1, 'This ELF file shall be interpreted using %s.', colored($interp, 'value'));
+			sayf($ind, 'This ELF file shall be interpreted using %s.', colored($interp, 'value'));
 		}
 		else {
-			sayf($ind + 1, 'Error: unable to retrieve the path of the interpreter.');
+			sayf($ind, 'Error: unable to retrieve the path of the interpreter.');
 		}
 	}
 }
