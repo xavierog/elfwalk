@@ -3011,9 +3011,11 @@ sub walkRela {
 	my $rela_info = $elf_structures->{$struct}->{$arch};
 
 	# Explain sh_link.
+	my $dynsym_index = undef;
 	my $linked_section = displayLinkedSection($ind, $elf_data, $section_index);
 	if (defined($linked_section) && $linked_section->{'_type'} eq 'SHT_DYNSYM') {
 		sayf($ind + 1, 'This is the associated symbol table.');
+		$dynsym_index = $linked_section->{'_index'};
 	}
 
 	# Explain sh_info.
@@ -3052,7 +3054,7 @@ sub walkRela {
 
 				if ($r_sym) {
 					# Get the name of the associated symbol.
-					my $symbol_name = symbolNameFromIndex($elf_data, $r_sym);
+					my $symbol_name = symbolNameFromIndex($elf_data, $r_sym, $dynsym_index);
 					$section->{'_relocations'}->{$i}->{'_symbol'} = $symbol_name;
 					sayf($ind + 3, 'Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name'));
 				}
