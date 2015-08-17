@@ -3010,6 +3010,24 @@ sub walkRela {
 	my $struct = ($section->{'_type'} eq 'SHT_RELA') ? 'rela' : 'rel';
 	my $rela_info = $elf_structures->{$struct}->{$arch};
 
+	# Explain sh_link.
+	my $linked_section = displayLinkedSection($ind, $elf_data, $section_index);
+	if (defined($linked_section) && $linked_section->{'_type'} eq 'SHT_DYNSYM') {
+		sayf($ind + 1, 'This is the associated symbol table.');
+	}
+
+	# Explain sh_info.
+	my $target_section = getLinkedSection($elf_data, $section_index, 'sh_info');
+	if (defined($target_section)) {
+		sayf(
+			$ind,
+			'Relocations described in this section apply to section #%s: %s, of type %s.',
+			colored($target_section->{'_index'}, 'index'),
+			colored($target_section->{'_name'}, 'name'),
+			colored($target_section->{'_type'}, 'name')
+		);
+	}
+
 	# Iterate over relocation entries.
 	for (my $i = 0; $i < $count; ++ $i) {
 		sayf($ind, '[%d/%d] Relocation at index #%s:', $i + 1, $count, $i);
