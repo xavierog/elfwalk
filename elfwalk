@@ -3032,10 +3032,15 @@ sub walkRela {
 				$section->{'_relocations'}->{$i}->{'r_sym'} = $r_sym;
 				say($ind + 2, analyseAndExplainValue($r_sym, 'r_sym', $rela_info->{$entry}));
 
-				# Get the name of the associated symbol.
-				my $symbol_name = symbolNameFromIndex($elf_data, $r_sym);
-				$section->{'_relocations'}->{$i}->{'_symbol'} = $symbol_name;
-				sayf($ind + 3, 'Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name'));
+				if ($r_sym) {
+					# Get the name of the associated symbol.
+					my $symbol_name = symbolNameFromIndex($elf_data, $r_sym);
+					$section->{'_relocations'}->{$i}->{'_symbol'} = $symbol_name;
+					sayf($ind + 3, 'Here, %s is the index of symbol %s.', colored($r_sym, 'value'), colored($symbol_name, 'name'));
+				}
+				else {
+					sayf($ind + 3, 'Here, the index is STN_UNDEF, so the relocation uses zero as the symbol value.');
+				}
 
 				# Extract r_type from r_info.
 				my $r_type = ($arch == ELFCLASS32 ? ($value & 0xFF) : ($value & 0xFFFFFFFF));
