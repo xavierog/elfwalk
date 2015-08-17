@@ -3741,11 +3741,12 @@ sub displayHashDetailsForSymbol {
 sub getLinkedSection {
 	my $elf_data = shift;
 	my $section_index = shift;
+	my $sh_attribute = shift || 'sh_link';
 
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return undef if (!defined($section));
 
-	my $linked_index = $section->{'sh_link'};
+	my $linked_index = $section->{$sh_attribute};
 	if ($linked_index && exists($elf_data->{'sections'}->{$linked_index})) {
 		return $elf_data->{'sections'}->{$linked_index};
 	}
