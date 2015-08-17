@@ -3598,8 +3598,12 @@ sub segmentIncludesSection {
 sub symbolFromIndex {
 	my $elf_data = shift;
 	my $index = shift;
+	my $dynsym_index = shift;
 
 	for my $section_index (@{$elf_data->{'SHT_DYNSYM'}}) {
+		if (defined($dynsym_index)) {
+			next if ($section_index != $dynsym_index);
+		}
 		if (exists($elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index})) {
 			return $elf_data->{'sections'}->{$section_index}->{'_symbols'}->{$index};
 		}
@@ -3610,8 +3614,9 @@ sub symbolFromIndex {
 sub symbolNameFromIndex {
 	my $elf_data = shift;
 	my $index = shift;
+	my $dynsym_index = shift;
 
-	my $symbol = symbolFromIndex($elf_data, $index);
+	my $symbol = symbolFromIndex($elf_data, $index, $dynsym_index);
 	return defined($symbol) ? $symbol->{'_name'} : undef;
 }
 
