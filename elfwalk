@@ -3303,6 +3303,7 @@ sub walkVersym {
 	for (my $i = 0; $i < $count; ++ $i) {
 		sayf($ind, '[%d/%d] symbol version entry at index #%s:', $i + 1, $count, $i);
 		if (!$i) {
+			readELFValue($elf_fh, 'Half');
 			say($ind + 1, 'Skipping as the symbol table entry for index 0 (STN_UNDEF) is reserved');
 			next;
 		}
