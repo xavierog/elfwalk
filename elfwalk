@@ -2223,7 +2223,11 @@ sub formatVersionDefinition {
 	for (my $i = 0; $i < $verdef->{'vd_cnt'}; ++ $i) {
 		push(@verdef_strings, $verdef->{'verdaux'}->{$i}->{'name'});
 	}
-	return join(' / ', @verdef_strings);
+	my $str = shift(@verdef_strings);
+	if (scalar(@verdef_strings)) {
+		$str .= sprintf(' (deps: %s)', join(', ', @verdef_strings));
+	}
+	return $str;
 }
 
 sub formatVersionRequirement {
