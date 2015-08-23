@@ -3289,6 +3289,9 @@ sub walkVersym {
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
 
+	my $dynsym = displayLinkedSection($ind, $elf_data, $section_index);
+	my $dynsym_index = defined($dynsym) ? $dynsym->{'_index'} : undef;
+
 	# How many entries do we intend to read?
 	my $count = $section->{'sh_size'} / $section->{'sh_entsize'};
 	# Note: sh_entsize is expected to be 2 bytes (16 bits) as the LSB states
@@ -3308,7 +3311,7 @@ sub walkVersym {
 			next;
 		}
 
-		my $symbol = symbolFromIndex($elf_data, $i);
+		my $symbol = symbolFromIndex($elf_data, $i, $dynsym_index);
 
 		my $value = readELFValue($elf_fh, 'Half');
 		my $printable_value = colored(formatValue($value, 'Half'), 'value');
