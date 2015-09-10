@@ -3110,7 +3110,7 @@ sub walkDynamic {
 					# An entry with a DT_NULL tag marks the end of the _DYNAMIC array.
 					last dynamic_array;
 				}
-				elsif ($tag_value == 1) { # DT_NEEDED
+				elsif ($tag_value == 1 || $tag_value == 14) { # DT_NEEDED or DT_SONAME
 					# "The offset is an index into the table recorded in the DT_STRTAB code."
 					# ... except we are liable to read a DT_NEEDED entry before
 					# stumbling upon the DT_STRTAB one.
