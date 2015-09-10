@@ -2757,7 +2757,7 @@ sub walkSymbolTable {
 	my $count = $section->{'sh_size'} / $section->{'sh_entsize'};
 
 	# Where should we read names from?
-	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index, 'Symbol names');
 
 	my $arch = $elf_data->{'EI_CLASS'};
 	my $st_info = $elf_structures->{'symbol_table'}->{$arch};
@@ -3085,7 +3085,7 @@ sub walkDynamic {
 	return if (!defined($section));
 
 	# Where should we read names from?
-	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index, 'Library names');
 
 	# What kind of entries do we intend to read?
 	my $arch = $elf_data->{'EI_CLASS'};
@@ -3169,7 +3169,7 @@ sub walkVerdef {
 	sayf($ind, 'This section contains DT_VERDEFNUM = %d entries.', $dt_verdefnum);
 
 	# Where should we read names from?
-	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index, 'Version strings and library names');
 
 	my $offset = $section->{'sh_offset'};
 	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
@@ -3230,7 +3230,7 @@ sub walkVerneed {
 	sayf($ind, 'This section contains DT_VERNEEDNUM = %d entries.', $dt_verneednum);
 
 	# Where should we read names from?
-	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index, 'Version strings and library names');
 
 	my $offset = $section->{'sh_offset'};
 	sayf($ind, 'Seeking to offset sh_offset = %s', formatOffset($offset));
