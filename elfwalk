@@ -3812,19 +3812,25 @@ sub displayStringTableForSection {
 	my $ind = shift;
 	my $elf_data = shift;
 	my $section_index = shift;
+	my $content = shift || 'Strings';
 
 	my $strtab = displayLinkedSection($ind, $elf_data, $section_index);
 	if (defined($strtab)) {
 		if ($strtab->{'_type'} eq 'SHT_STRTAB') {
 			sayf(
 				$ind + 1,
-				'Symbol names will be read from it, i.e. from offset %s.',
+				'%s will be read from it, i.e. from offset %s.',
+				$content,
 				formatOffset($strtab->{'sh_offset'})
 			);
 			return $strtab->{'_index'};
 		}
 		else {
-			say($ind + 1, 'Symbol names will not be read from there though, as its type is not SHT_STRTAB.');
+			sayf(
+				$ind + 1,
+				'%s will not be read from there though, as its type is not SHT_STRTAB.',
+				$content
+			);
 		}
 	}
 	return undef;
