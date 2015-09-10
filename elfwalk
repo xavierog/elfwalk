@@ -3084,6 +3084,9 @@ sub walkDynamic {
 	my $section = $elf_data->{'sections'}->{$section_index};
 	return if (!defined($section));
 
+	# Where should we read names from?
+	my $strtab = displayStringTableForSection($ind, $elf_data, $section_index);
+
 	# What kind of entries do we intend to read?
 	my $arch = $elf_data->{'EI_CLASS'};
 	my $dyn_info = $elf_structures->{'dynamic'}->{$arch};
@@ -3111,14 +3114,11 @@ sub walkDynamic {
 					# "The offset is an index into the table recorded in the DT_STRTAB code."
 					# ... except we are liable to read a DT_NEEDED entry before
 					# stumbling upon the DT_STRTAB one.
-					# We can assume DT_STRTAB actually points to a SHT_STRTAB
-					# section, typically .dynstr
-					for my $section_index (keys(%{$elf_data->{'sections'}})) {
-						my $section = $elf_data->{'sections'}->{$section_index};
-						if ($section->{'_name'} eq '.dynstr') {
-							displayStringFromSection($ind + 1, $elf_fh, $elf_data, $section_index, $value);
-							last;
-						}
+					# As DT_STRTAB is supposed to point to a SHT_STRTAB section,
+					# typically .dynstr, we can assume everything will be fine
+					# if we rely on the linked strtab.
+					if ($strtab) {
+						displayStringFromSection($ind + 1, $elf_fh, $elf_data, $strtab, $value);
 					}
 				}
 				elsif ($tag_value == 20) { # DT_PLTREL
